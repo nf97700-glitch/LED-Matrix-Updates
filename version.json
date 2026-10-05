@@ -1,5 +1,20 @@
 {
-  "app": {"web": 1, "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html", "minApk": 8, "apk": 8, "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"},
-  "firmware": {"version": 2, "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"},
-  "notes": "Управление через интернет, сопряжение, обновления по воздуху"
+  "app": {
+    "web": 1,
+    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
+    "minApk": 8,
+    "apk": 8,
+    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
+  },
+  "firmware": {
+    "version": 2,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
+  },
+  "notes": "Управление через интернет, сопряжение, обновления по воздуху",
+  "pc": {
+    "version": 1,
+    "runtime": 1,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
+    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
+  }
 }
