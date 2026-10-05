@@ -191,7 +191,7 @@ nav button.upd .udot{transform:scale(1)}
 .btn[hidden]{display:none}
 .ubtns{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .prog{height:4px;border-radius:2px;background:#222;overflow:hidden;margin-top:10px;display:none}.prog.on{display:block}
-.prog i{display:block;height:100%;width:40%;background:var(--accent);animation:progm 1.1s ease-in-out infinite}
+.prog i{display:block;height:100%;width:40%;background:var(--accent);animation:progm 1.1s ease-in-out infinite}.prog.det i{animation:none;transform:none;transition:width .2s}
 @keyframes progm{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
 .note{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:10px}
 .pw{position:relative}
@@ -340,7 +340,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t">Прошивка гирлянды</span><span class="r" id="fwVer">—</span></div>
   <div class="mut" id="updRes" style="margin-top:10px;min-height:16px"></div>
   <div class="prog" id="updProg"><i></i></div>
-  <div class="ubtns"><button class="btn red" id="updWeb" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button><button class="btn red" id="updApk" hidden>СКАЧАТЬ НОВУЮ ВЕРСИЮ</button>
+  <div class="ubtns"><button class="btn red" id="updWeb" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button><button class="btn red" id="updApk" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button>
   <button class="btn red" id="updFw" hidden>ОБНОВИТЬ ПРОШИВКУ</button><button class="btn" id="updCheck"><svg viewBox="0 0 24 24" class="i" data-i="upd"></svg>ПРОВЕРИТЬ ОБНОВЛЕНИЯ</button></div>
  </div>
  <div class="card">
@@ -370,7 +370,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=2;
+const WEB_VERSION=3;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -903,13 +903,21 @@ $("updCheck").onclick=()=>{buzz(10);checkUpdates(false)};
 $("updWeb").onclick=()=>{buzz(10);if(!upd)return;$("updWeb").disabled=true;$("updRes").textContent="Скачиваю…";$("updProg").classList.add("on");
  const id="h"+(++net.seq);net.cb[id]=r=>{$("updProg").classList.remove("on");$("updWeb").disabled=false;
   $("updRes").textContent=r?"Готово — перезапускаю…":"Не получилось скачать, попробуй ещё раз"};Native.updateWeb(id,upd.app.webUrl,upd.app.web)};
-$("updApk").onclick=()=>{buzz(10);if(upd)Native.openUrl(upd.app.apkUrl);$("updRes").textContent="Скачай файл и установи его поверх — картинки и настройки сохранятся."};
+function apkProg(p){const b=$("updProg"),i=b.querySelector("i");b.classList.add("on");b.classList.toggle("det",p>=0);i.style.width=p>=0?p+"%":""}
+function apkDone(){const b=$("updProg");b.classList.remove("on","det");b.querySelector("i").style.width="";$("updApk").disabled=false}
+window.onApk=(st,v)=>{if(st==="progress"){apkProg(v);$("updRes").textContent="Скачиваю"+(v>=0?" "+v+"%":"…")}
+ else if(st==="ready"){apkDone();$("updRes").textContent="Скачано — нажми «Установить». Картинки и настройки сохранятся."}
+ else if(st==="perm"){$("updRes").textContent="Разреши установку из этого приложения и вернись назад — установка продолжится."}
+ else{apkDone();$("updRes").textContent="Не получилось скачать, попробуй ещё раз"}};
+$("updApk").onclick=()=>{buzz(10);if(!upd)return;
+ if(window.Native&&Native.installApk){$("updApk").disabled=true;apkProg(-1);$("updRes").textContent="Скачиваю…";Native.installApk(upd.app.apkUrl)}
+ else{Native.openUrl(upd.app.apkUrl);$("updRes").textContent="Скачай файл и установи его поверх — картинки и настройки сохранятся."}};
 $("updFw").onclick=()=>{buzz(10);if(!upd||!net.online)return;$("updFw").disabled=true;
  request({type:"ota",url:upd.firmware.url},null,6000).then(r=>{$("updFw").disabled=false;
   if(r&&r.startsWith("OK")){fwSent=Date.now();$("updRes").textContent="Гирлянда скачивает прошивку — нижний ряд покажет прогресс. Не выключай её.";$("updProg").classList.add("on")}
   else $("updRes").textContent=r?"Гирлянда отказалась: старая прошивка не умеет обновляться по воздуху — прошей один раз кабелем.":"Нет ответа от гирлянды"})};
 function onOta(s){if(!fwSent)return;if(!s){return}
- if(s.ota&&s.ota.startsWith("fail")){fwSent=0;$("updProg").classList.remove("on");$("updRes").textContent="Ошибка обновления: "+s.ota.slice(5)}
+ if(s.ota&&s.ota.startsWith("fail")){fwSent=0;$("updProg").classList.remove("on");const m=s.ota.slice(5);$("updRes").textContent=/partition|раздел/i.test(m)?"В гирлянде нет места для обновления по воздуху. Прошей её один раз кабелем со схемой Partition Scheme: «Default 4MB with spiffs» — дальше обновления пойдут по воздуху.":"Ошибка обновления: "+m}
  else if(upd&&s.fw>=upd.firmware.version){fwSent=0;$("updProg").classList.remove("on");$("updRes").textContent="Прошивка обновлена до v"+s.fw+" ✓";toast("ПРОШИВКА ОБНОВЛЕНА ✓")}
  else if(Date.now()-fwSent>180000){fwSent=0;$("updProg").classList.remove("on");$("updRes").textContent="Не дождался гирлянды — проверь её позже"}
  paintUpd()}

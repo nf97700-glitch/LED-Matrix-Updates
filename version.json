@@ -1,18 +1,18 @@
 {
   "app": {
-    "web": 2,
+    "web": 3,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 8,
-    "apk": 9,
+    "apk": 10,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 3,
+    "version": 4,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Убрано управление через интернет и сопряжение",
+  "notes": "Приложение само скачивает и ставит обновление; красные кнопки на ПК; понятная ошибка OTA",
   "pc": {
-    "version": 2,
+    "version": 3,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
