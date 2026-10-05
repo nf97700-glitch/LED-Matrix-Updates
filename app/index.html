@@ -370,7 +370,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=5;
+const WEB_VERSION=6;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -618,8 +618,8 @@ function onBright(v){brightness=v;store.set("brightness",v);setBrightUI(v);if(!n
 let selMode=store.get("selMode","fire"),activeMode=null,previewsActive=false;
 const modeActive=()=>!!activeMode;
 function stopMode(silentIfOff){if(!activeMode&&silentIfOff)return;activeMode=null;send({type:"mode",mode:"off",speed:65},"mode");renderModes()}
-function startMode(k){activeMode=k;selMode=k;store.set("selMode",k);store.set("lastMode",k);
- send({type:"mode",mode:k,speed:speedOf(k)},"mode");renderModes()}
+function startMode(k){activeMode=k;store.set("lastMode",k);
+ send({type:"mode",mode:k,speed:speedOf(k)},"mode");selectMode(k)}
 const speedOf=k=>store.get("speed_"+k,65);
 // --- симуляции (те же формулы, что в программе и прошивке) ---
 function fireHash(x,y){let h=(Math.imul(x,374761393)+Math.imul(y,668265263))>>>0;h=Math.imul(h^(h>>>13),1274126177)>>>0;h=(h^(h>>>16))>>>0;return h/4294967295}
@@ -878,7 +878,7 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  if(s.name)$("devName").textContent=s.name;if("ap" in s)$("netV").textContent=s.ap?"Точка доступа «Matrix»":(s.ssid||"—");
  $("espTime").textContent=s.time?new Date((s.time+(s.tz||0)*3600)*1000).toISOString().substr(11,5)+" UTC"+(s.tz>=0?"+":"")+s.tz:"не задано";
  // режим, который реально играет на гирлянде (в т.ч. включённый сценарием)
- if("mode" in s){const m=s.mode&&s.mode!=="off"?s.mode:null;if(m!==activeMode&&Date.now()-net.modeAt>3000){activeMode=m;renderModes()}}
+ if("mode" in s){const m=s.mode&&s.mode!=="off"?s.mode:null;if(m!==activeMode&&Date.now()-net.modeAt>3000){activeMode=m;if(m&&cards[m])selectMode(m);else renderModes()}}
  if(s.sched&&Date.now()-scenDirty>4000&&!net.queue.some(q=>q.key==="sched")){const lines=JSON.stringify(s.sched||[]);
   if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);renderScens()}}
  if(justConnected){sendTime();nightApplied=null;checkNight();
