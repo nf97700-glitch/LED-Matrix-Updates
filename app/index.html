@@ -335,14 +335,6 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="clock"></svg><span class="t">Время гирлянды</span><span class="r" id="espTime">—</span></div>
  </div>
  <div class="card">
-  <div class="h3"><b>СОПРЯЖЕНИЕ</b></div>
-  <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="link"></svg><span class="t">Моя гирлянда</span><span class="r" id="pairV">—</span></div>
-  <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t">ID</span><span class="r" id="pairId">—</span></div>
-  <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="cloud"></svg><span class="t">Связь</span><span class="r" id="viaV">—</span></div>
-  <div class="note" id="pairNote">Приложение управляет только своей гирляндой. Дома — напрямую по Wi-Fi, вне дома — через интернет.</div>
-  <div style="margin-top:12px"><button class="btn" id="pairBtn">ОТВЯЗАТЬ</button></div>
- </div>
- <div class="card">
   <div class="h3"><b>ОБНОВЛЕНИЯ</b></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="phone"></svg><span class="t">Приложение</span><span class="r" id="appVer">—</span></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t">Прошивка гирлянды</span><span class="r" id="fwVer">—</span></div>
@@ -378,7 +370,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=1;
+const WEB_VERSION=2;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -400,8 +392,6 @@ mirror:'<path d="M12 3v18" stroke-dasharray="2 2.5"/><path d="M9 7L3 17h6z"/><pa
 undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
 redo:'<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
 play:'<path d="M7 4l13 8-13 8z"/>',
-link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
-cloud:'<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18z"/>',
 upd:'<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4h-4"/>',
 phone:'<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
 eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
@@ -479,7 +469,7 @@ function send(cmd,key){if(!net.online)return;
 // зеркало: смотришь на гирлянду с улицы — лево и право меняются местами (только то, что уходит на гирлянду)
 let mirror=store.get("mirror",false);
 function sendPixel(r,c,hex){send({type:"pixel",col:mirror?COLS-1-c:c,row:r,color:isOff(hex)?"000000":hex.slice(1)})}
-window.onLink=(online,ip,name,via)=>{const was=net.online;net.online=!!online;net.ip=ip||null;net.name=name||null;net.via=online?(via||"local"):"";
+window.onLink=(online,ip,name)=>{const was=net.online;net.online=!!online;net.ip=ip||null;net.name=name||null;
  if(!net.online){onState(null,false)}else{if(!was)pollState(true);else paintStatus()}};
 function pollState(first){if(!net.online||net.queue.some(q=>q.key==="state"))return;
  request({type:"state"},"state",3000).then(r=>{if(!r)return;try{const s=JSON.parse(r);net.state=s;net.stateAt=Date.now();onState(s,first)}catch(e){
@@ -857,7 +847,7 @@ function checkNight(){const a=nightActive();if(a===nightApplied||!net.online)ret
 let pwVis=false;$("eye").onclick=()=>{pwVis=!pwVis;$("pass").type=pwVis?"text":"password";$("eye").innerHTML=svg(pwVis?"eye_off":"eye")};
 $("wifiGo").onclick=async()=>{const ssid=$("ssid").value.trim();if(!ssid){$("wifiRes").textContent="Введи имя сети";return}
  if(!net.online){$("wifiRes").textContent="Гирлянда не в сети";return}buzz(10);$("wifiGo").disabled=true;$("wifiRes").textContent="Подключаю гирлянду…";
- const r=await request({ssid,password:$("pass").value},null,20000);$("wifiGo").disabled=false;if(!r&&net.via==="cloud"){$("wifiRes").textContent="Wi-Fi меняется только из дома: подключись к той же сети, что и гирлянда.";return}
+ const r=await request({ssid,password:$("pass").value},null,20000);$("wifiGo").disabled=false;
  $("wifiRes").textContent=r&&r.startsWith("OK")?"Готово! Гирлянда подключилась к «"+ssid+"». Подключи телефон к этой же сети — приложение найдёт её само.":
   (r||"Нет ответа — проверь имя сети и пароль").replace("ERROR:","Ошибка:");if(r&&r.startsWith("OK"))$("pass").value=""};
 const DEVPREV=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>hsv2rgb(((c*.03+r*.025)%1+1)%1,1,.9)));
@@ -866,11 +856,9 @@ const DEVPREV=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>hs
 let everOnline=false;
 function paintStatus(){const on=net.online;if(on)everOnline=true;
  $("sdot").className="sdot "+(on?"online":(everOnline?"":"search"));
- const cl=on&&net.via==="cloud";
- $("stext").textContent=on?(cl?"ЧЕРЕЗ ИНТЕРНЕТ":"ONLINE"):(everOnline?"OFFLINE":"ПОИСК…");
- $("devState").textContent=on?(cl?"Подключена через интернет":"Подключена"):(everOnline?"Не в сети":"Поиск…");
- $("viaV").textContent=on?(cl?"Через интернет":"Домашняя сеть"):"Нет связи";
- $("ipV").textContent=net.ip||(cl?"через интернет":"—");if(net.name)$("devName").textContent=net.name;paintFw()}
+ $("stext").textContent=on?"ONLINE":(everOnline?"OFFLINE":"ПОИСК…");
+ $("devState").textContent=on?"Подключена":(everOnline?"Не в сети":"Поиск…");
+ $("ipV").textContent=net.ip||"—";if(net.name)$("devName").textContent=net.name;paintFw()}
 function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  if(!s){if(page===2)renderClock();return}
  if(s.name)$("devName").textContent=s.name;if("ap" in s)$("netV").textContent=s.ap?"Точка доступа «Matrix»":(s.ssid||"—");
@@ -883,24 +871,12 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
   if(typeof s.brightness==="number"&&!nightActive()&&s.brightness!==brightness){brightness=s.brightness;setBrightUI(brightness)}
   if(store.get("startLast",false)&&!activeMode&&store.get("lastMode",null))startMode(store.get("lastMode"))}}
 
-/* ================= СОПРЯЖЕНИЕ ================= */
-let pair={paired:false,id:null,name:"",auto:true,pairing:false,legacy:false};
-try{if(window.Native&&Native.pairInfo)pair=JSON.parse(Native.pairInfo())}catch(e){}
-window.onPair=p=>{pair=p||pair;paintPair()};
-function paintPair(){$("pairV").textContent=pair.paired?(pair.name||"LED Matrix"):(pair.legacy?"старая прошивка":(pair.auto?"поиск…":"не привязана"));
- $("pairId").textContent=pair.paired?pair.id:"—";
- $("pairBtn").textContent=pair.paired?"ОТВЯЗАТЬ":(pair.auto?"ИЩУ ГИРЛЯНДУ…":"НАЙТИ И ПРИВЯЗАТЬ");$("pairBtn").disabled=!pair.paired&&pair.auto;
- $("pairNote").textContent=pair.paired?"Приложение управляет только этой гирляндой. Дома — напрямую по Wi-Fi, вне дома — через интернет.":
-  pair.legacy?"Гирлянда со старой прошивкой: работает только дома. Обнови прошивку — появится управление через интернет.":
-  "Подключи телефон к той же Wi-Fi сети, что и гирлянда: приложение найдёт её и привяжет к себе."}
-$("pairBtn").onclick=()=>{buzz(10);if(!window.Native)return;
- if(!pair.paired){Native.pairNow();return}
- openSheet("СОПРЯЖЕНИЕ",sh=>{const w=document.createElement("div");w.className="cdel";
-  w.innerHTML=`<div class="ct">Отвязать гирлянду?</div><div class="cn"></div>
-  <div class="mut" style="text-align:center;margin:4px 0 18px">Чтобы привязать её снова, нужно быть дома, в одной Wi-Fi сети с ней</div>
-  <div class="sbtns"><button class="btn">ОТМЕНА</button><button class="btn red">ОТВЯЗАТЬ</button></div>`;
-  w.querySelector(".cn").textContent="«"+(pair.name||"LED Matrix")+"»";sh.appendChild(w);
-  const[no,yes]=w.querySelectorAll(".sbtns .btn");no.onclick=()=>{buzz(6);closeSheet()};yes.onclick=()=>{closeSheet();Native.unpair();toast("ГИРЛЯНДА ОТВЯЗАНА")}})};
+/* Приложение 1.7 умело привязываться к одной гирлянде. Привязку убрали:
+   если старая часть приложения ещё помнит гирлянду и не видит её — отвязываем. */
+let lostAt=0;
+if(window.Native&&Native.pairInfo)setInterval(()=>{try{const p=JSON.parse(Native.pairInfo());
+ if(!p.auto){Native.pairNow();return}
+ if(p.paired&&!net.online){if(!lostAt)lostAt=Date.now();else if(Date.now()-lostAt>5000){lostAt=0;Native.unpair();Native.pairNow()}}else lostAt=0}catch(e){}},1500);
 
 /* ================= ОБНОВЛЕНИЯ =================
    Файл version.json в репозитории обновлений: новая страница приложения ставится
@@ -944,7 +920,7 @@ function init(){layoutMatrix();buildWheel();renderMine();setColor("#FF0000");set
  b1=DotSlider($("bright1"),5,100,onBright);b2=DotSlider($("bright2"),5,100,onBright);setBrightUI(brightness);
  sp=DotSlider($("speed"),1,100,onSpeed);selectMode(selMode);renderScens(true);renderPics();updHist();paintMirror();updSave();
  thumb($("devPrev"),DEVPREV.map(r=>r.map(c=>rgbToHex(...c))),64,64,1);
- showPage(0);requestAnimationFrame(animate);paintStatus();paintPair();paintApp();if(window.Native)Native.ready();
+ showPage(0);requestAnimationFrame(animate);paintStatus();paintApp();if(window.Native)Native.ready();
  setTimeout(()=>checkUpdates(true),2500);
  setInterval(()=>{if(page===2)renderClock();checkNight()},1000);setInterval(sendTime,15*60*1000)}
 window.addEventListener("load",init);
