@@ -1,6 +1,6 @@
 {
   "app": {
-    "web": 6,
+    "web": 7,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 8,
     "apk": 12,
@@ -10,7 +10,7 @@
     "version": 6,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Исправлено название режима при переключении",
+  "notes": "Режим выбирается только переключателем",
   "pc": {
     "version": 5,
     "runtime": 1,

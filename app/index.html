@@ -370,7 +370,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=6;
+const WEB_VERSION=7;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -687,7 +687,8 @@ const cards={};
 MODES.forEach(([k,t,d])=>{const el=document.createElement("div");el.className="mode";
  el.innerHTML=`<canvas></canvas><div class="mt"><div><div class="mn">${t}</div><div class="md">${d}</div></div><div class="tg"></div></div>`;
  const sim=makeSim(k);setSimSpeed(sim,k,speedOf(k));cards[k]={el,sim,cv:el.querySelector("canvas"),tg:el.querySelector(".tg")};
- el.onclick=e=>{buzz(6);if(e.target.classList.contains("tg")){activeMode===k?stopMode():startMode(k)}else selectMode(k)};$("mgrid").appendChild(el)});
+ // режим выбирается только переключателем; нажатие по самой карточке нижний блок не меняет
+ el.onclick=e=>{if(!e.target.classList.contains("tg"))return;buzz(6);activeMode===k?stopMode():startMode(k)};$("mgrid").appendChild(el)});
 {const s=document.createElement("div");s.className="mode soon";s.innerHTML=svg("plus")+'<div style="font-size:11px">Скоро новые режимы</div>';$("mgrid").appendChild(s)}
 function selectMode(k){selMode=k;store.set("selMode",k);const m=MODES.find(m=>m[0]===k);$("selName").textContent=m[1];$("selDesc").textContent=m[2];
  sp.set(speedOf(k));$("spv").textContent=speedOf(k);renderModes()}
