@@ -370,7 +370,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=3;
+const WEB_VERSION=4;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -454,7 +454,7 @@ dotText($("logo"),"LED MATRIX",2.6,1.0,"#FFFFFF","#1C1C1C");
    поиск и мгновенные команды — UDP 45454, картинки и настройки — TCP 3333.
    Сокеты открывает Android-часть приложения (window.Native). */
 const net={online:false,ip:null,name:null,state:null,busy:false,queue:[],cb:{},seq:0,modeAt:0};
-const UDP_TYPES=new Set(["mode","speed","brightness","pixel","clear"]);
+const UDP_TYPES=new Set(["mode","speed","brightness","pixel","pixels","clear"]);
 function tcp(cmd,timeout){return new Promise(res=>{if(!window.Native){res(null);return}
  const id=++net.seq;net.cb[id]=res;Native.tcp(String(id),JSON.stringify(cmd),timeout||4000)})}
 window.onTcp=(id,reply)=>{const f=net.cb[id];delete net.cb[id];if(f)f(reply)};
@@ -468,14 +468,22 @@ function send(cmd,key){if(!net.online)return;
  request(cmd,key)}
 // зеркало: смотришь на гирлянду с улицы — лево и право меняются местами (только то, что уходит на гирлянду)
 let mirror=store.get("mirror",false);
-function sendPixel(r,c,hex){send({type:"pixel",col:mirror?COLS-1-c:c,row:r,color:isOff(hex)?"000000":hex.slice(1)})}
+// пиксели копятся ~12 мс и уходят одним UDP-пакетом (до 24 штук): меньше пакетов — ничего не теряется
+const pxq=new Map();let pxT=0,lastPaintAt=0;
+function sendPixel(r,c,hex){if(!net.online)return;lastPaintAt=Date.now();const col=mirror?COLS-1-c:c;
+ pxq.set(col*ROWS+r,[col,r,isOff(hex)?"000000":hex.slice(1)]);if(!pxT)pxT=setTimeout(flushPx,12)}
+function flushPx(){pxT=0;if(!pxq.size)return;const a=[...pxq.values()];pxq.clear();
+ for(let i=0;i<a.length;i+=24){const p=a.slice(i,i+24);
+  if(p.length===1)send({type:"pixel",col:p[0][0],row:p[0][1],color:p[0][2]});else send({type:"pixels",pixels:p})}}
 window.onLink=(online,ip,name)=>{const was=net.online;net.online=!!online;net.ip=ip||null;net.name=name||null;
  if(!net.online){onState(null,false)}else{if(!was)pollState(true);else paintStatus()}};
 function pollState(first){if(!net.online||net.queue.some(q=>q.key==="state"))return;
+ // пока рисуешь — гирлянду не дёргаем
+ if(!first&&(stroke||Date.now()-lastPaintAt<1500))return;
  request({type:"state"},"state",3000).then(r=>{if(!r)return;try{const s=JSON.parse(r);net.state=s;net.stateAt=Date.now();onState(s,first)}catch(e){
   // старая прошивка без команды state — просто работаем без синхронизации
   if(first)onState({},true)}})}
-setInterval(()=>pollState(false),2500);
+setInterval(()=>pollState(false),3000);
 window.onResume=()=>{net.stateAt=0;pollState(false)};
 /* ================= ВКЛАДКИ ================= */
 const TABS=[["draw","Рисунок"],["modes","Режимы"],["scen","Сценарии"],["pics","Картинки"],["set","Настройки"]];
@@ -525,14 +533,16 @@ function paintAt(x,y){const cell=cellAt(x,y);if(!cell)return;const[r,c]=cell;con
 mcv.addEventListener("pointerdown",e=>{e.preventDefault();M.wave=null;mcv.setPointerCapture(e.pointerId);
  const b=mcv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
  if(M.tool==="pick"){const cell=cellAt(x,y);if(cell&&!isOff(M.px[cell[0]][cell[1]])){setColor(M.px[cell[0]][cell[1]]);buzz(12)}setTool("draw");return}
- pushHist();const unsure=net.online&&Date.now()-(net.stateAt||0)>4000;
+ pushHist();const unsure=net.online&&Date.now()-(net.stateAt||0)>9000;
  stroke={resend:modeActive()||unsure,last:[x,y]};
  // режим идёт (или пока не знаем, что играет гирлянда) — сначала гасим его, после штриха шлём весь холст
  if(modeActive())stopMode(true);else if(unsure)send({type:"mode",mode:"off",speed:65},"mode");paintAt(x,y)});
 mcv.addEventListener("pointermove",e=>{if(!stroke)return;const b=mcv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
  const[lx,ly]=stroke.last,dist=Math.hypot(x-lx,y-ly),n=Math.max(1,Math.floor(dist/3));
  for(let i=1;i<=n;i++)paintAt(lx+(x-lx)*i/n,ly+(y-ly)*i/n);stroke.last=[x,y]});
-const endStroke=()=>{if(stroke&&stroke.resend)sendPicture();stroke=null;updSave()};
+// после штриха — весь холст по TCP: если какой-то пакет потерялся, гирлянда всё равно совпадёт с телефоном
+let picT=0;
+const endStroke=()=>{if(stroke){flushPx();clearTimeout(picT);picT=setTimeout(sendPicture,stroke.resend?0:250)}stroke=null;updSave()};
 mcv.addEventListener("pointerup",endStroke);mcv.addEventListener("pointercancel",endStroke);
 function pictureRows(px){return px.map(row=>row.map(c=>isOff(c)?"000000":c.slice(1)).join(""))}
 function sendPicture(black){send({type:"picture",rows:black?Array(ROWS).fill("000000".repeat(COLS)):pictureRows(mirror?M.px.map(r=>r.slice().reverse()):M.px)},"picture")}
