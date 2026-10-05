@@ -74,7 +74,7 @@ font-size:12px;letter-spacing:1.5px;text-transform:uppercase;width:100%;transiti
 svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 /* ---------- нижняя панель вкладок ---------- */
 nav{position:fixed;left:12px;right:12px;bottom:calc(10px + var(--safe-b));height:64px;border:1px solid var(--line2);border-radius:32px;
-background:rgba(0,0,0,.86);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);display:flex;padding:6px;z-index:5}
+background:rgba(0,0,0,.96);display:flex;padding:6px;z-index:5}
 nav .tabpill{position:absolute;top:6px;bottom:6px;left:6px;border-radius:26px;background:#fff;z-index:0;
 transition:transform .28s cubic-bezier(.34,1.3,.5,1),width .28s cubic-bezier(.34,1.3,.5,1)}
 nav button{flex:1;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
@@ -370,7 +370,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=4;
+const WEB_VERSION=5;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -472,7 +472,10 @@ let mirror=store.get("mirror",false);
 const pxq=new Map();let pxT=0,lastPaintAt=0;
 function sendPixel(r,c,hex){if(!net.online)return;lastPaintAt=Date.now();const col=mirror?COLS-1-c:c;
  pxq.set(col*ROWS+r,[col,r,isOff(hex)?"000000":hex.slice(1)]);if(!pxT)pxT=setTimeout(flushPx,12)}
-function flushPx(){pxT=0;if(!pxq.size)return;const a=[...pxq.values()];pxq.clear();
+// каждый пакет повторяет и прошлую пачку: если один UDP-пакет потеряется, следующий его восполнит
+let pxPrev=new Map();
+function flushPx(){pxT=0;if(!pxq.size)return;const all=new Map(pxPrev);pxq.forEach((v,k)=>all.set(k,v));pxPrev=new Map(pxq);
+ const a=[...all.values()];pxq.clear();
  for(let i=0;i<a.length;i+=24){const p=a.slice(i,i+24);
   if(p.length===1)send({type:"pixel",col:p[0][0],row:p[0][1],color:p[0][2]});else send({type:"pixels",pixels:p})}}
 window.onLink=(online,ip,name)=>{const was=net.online;net.online=!!online;net.ip=ip||null;net.name=name||null;
@@ -527,21 +530,22 @@ const snap=()=>M.px.map(r=>r.slice());
 function updHist(){$("undo").disabled=!M.hist.length;$("redo").disabled=!M.redo.length}
 function pushHist(){M.hist.push(snap());if(M.hist.length>50)M.hist.shift();M.redo=[];updHist()}
 function applySnap(p){setTimeout(updSave);updHist();M.wave=null;M.px=p;paintMatrix();stopMode(true);sendPicture()}
-let stroke=null;
+let stroke=null,picT=0;
 function paintAt(x,y){const cell=cellAt(x,y);if(!cell)return;const[r,c]=cell;const target=M.tool==="eraser"?OFF:M.color;
- if(M.px[r][c]!==target){M.px[r][c]=target;paintMatrix();sendPixel(r,c,target)}}
+ if(M.px[r][c]!==target){M.px[r][c]=target;paintSoon();sendPixel(r,c,target)}}
+// перерисовка холста — не чаще одного раза за кадр экрана
+let paintQ=false;function paintSoon(){if(paintQ)return;paintQ=true;requestAnimationFrame(()=>{paintQ=false;paintMatrix()})}
 mcv.addEventListener("pointerdown",e=>{e.preventDefault();M.wave=null;mcv.setPointerCapture(e.pointerId);
  const b=mcv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
  if(M.tool==="pick"){const cell=cellAt(x,y);if(cell&&!isOff(M.px[cell[0]][cell[1]])){setColor(M.px[cell[0]][cell[1]]);buzz(12)}setTool("draw");return}
  pushHist();const unsure=net.online&&Date.now()-(net.stateAt||0)>9000;
  stroke={resend:modeActive()||unsure,last:[x,y]};
  // режим идёт (или пока не знаем, что играет гирлянда) — сначала гасим его, после штриха шлём весь холст
- if(modeActive())stopMode(true);else if(unsure)send({type:"mode",mode:"off",speed:65},"mode");paintAt(x,y)});
+ clearTimeout(picT);pxPrev=new Map();if(modeActive())stopMode(true);paintAt(x,y)});
 mcv.addEventListener("pointermove",e=>{if(!stroke)return;const b=mcv.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top;
  const[lx,ly]=stroke.last,dist=Math.hypot(x-lx,y-ly),n=Math.max(1,Math.floor(dist/3));
  for(let i=1;i<=n;i++)paintAt(lx+(x-lx)*i/n,ly+(y-ly)*i/n);stroke.last=[x,y]});
 // после штриха — весь холст по TCP: если какой-то пакет потерялся, гирлянда всё равно совпадёт с телефоном
-let picT=0;
 const endStroke=()=>{if(stroke){flushPx();clearTimeout(picT);picT=setTimeout(sendPicture,stroke.resend?0:250)}stroke=null;updSave()};
 mcv.addEventListener("pointerup",endStroke);mcv.addEventListener("pointercancel",endStroke);
 function pictureRows(px){return px.map(row=>row.map(c=>isOff(c)?"000000":c.slice(1)).join(""))}
@@ -693,7 +697,7 @@ function onSpeed(v){store.set("speed_"+selMode,v);$("spv").textContent=v;setSimS
  send({type:"speed",mode:selMode,value:v},"speed")}
 $("stop").onclick=()=>{buzz(10);stopMode()};
 let lastT=performance.now();
-function animate(now){if(now-lastT<30){requestAnimationFrame(animate);return}const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
+function animate(now){if(now-lastT<38||document.hidden||!previewsActive){if(!previewsActive)lastT=now;requestAnimationFrame(animate);return}const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
  if(previewsActive)for(const k in cards){const c=cards[k];c.sim.step(dt);const w=c.cv.clientWidth,h=c.cv.clientHeight;
   if(!c.ctx||c.w!==w){c.ctx=fitCanvas(c.cv,w,h);c.w=w}drawLeds(c.ctx,ledView(c.sim.frame,k),w,h,2,"#000")}
  requestAnimationFrame(animate)}
@@ -898,7 +902,9 @@ window.onHttp=(id,r)=>{const f=net.cb[id];delete net.cb[id];if(f)f(r)};
 function paintApp(){$("appVer").textContent=(app.apkName||"—")+" · интерфейс "+app.web}
 function fwHave(){return net.state&&net.state.fw?net.state.fw:(net.online?1:0)}
 function paintFw(){$("fwVer").textContent=net.online?"v"+fwHave():"—";paintUpd()}
-function paintUpd(){const u=upd;const web=u&&u.app&&u.app.web>app.web&&(u.app.minApk||0)<=app.apk;
+function paintUpd(){const u=upd;const auto=!!(window.Native&&Native.installApk);
+ // умеем ставить APK сами — сразу предлагаем его (в нём и новый интерфейс), без промежуточного шага
+ const web=u&&u.app&&u.app.web>app.web&&(u.app.minApk||0)<=app.apk&&!(auto&&u.app.apk>app.apk);
  const apk=u&&u.app&&u.app.apk>app.apk&&!web;const fw=u&&u.firmware&&net.online&&u.firmware.version>fwHave()&&!(net.state&&net.state.ota==="run");
  $("updWeb").hidden=!web;$("updApk").hidden=!apk;$("updFw").hidden=!fw;
  if(fw)$("updFw").textContent="ОБНОВИТЬ ПРОШИВКУ ДО v"+u.firmware.version;
@@ -912,12 +918,12 @@ async function checkUpdates(silent){if(updBusy)return;updBusy=true;$("updCheck")
 $("updCheck").onclick=()=>{buzz(10);checkUpdates(false)};
 $("updWeb").onclick=()=>{buzz(10);if(!upd)return;$("updWeb").disabled=true;$("updRes").textContent="Скачиваю…";$("updProg").classList.add("on");
  const id="h"+(++net.seq);net.cb[id]=r=>{$("updProg").classList.remove("on");$("updWeb").disabled=false;
-  $("updRes").textContent=r?"Готово — перезапускаю…":"Не получилось скачать, попробуй ещё раз"};Native.updateWeb(id,upd.app.webUrl,upd.app.web)};
+  if(r)store.set("afterUpd",1);$("updRes").textContent=r?"Готово — перезапускаю…":"Не получилось скачать, попробуй ещё раз"};Native.updateWeb(id,upd.app.webUrl,upd.app.web)};
 function apkProg(p){const b=$("updProg"),i=b.querySelector("i");b.classList.add("on");b.classList.toggle("det",p>=0);i.style.width=p>=0?p+"%":""}
 function apkDone(){const b=$("updProg");b.classList.remove("on","det");b.querySelector("i").style.width="";$("updApk").disabled=false}
 window.onApk=(st,v)=>{if(st==="progress"){apkProg(v);$("updRes").textContent="Скачиваю"+(v>=0?" "+v+"%":"…")}
- else if(st==="ready"){apkDone();$("updRes").textContent="Скачано — нажми «Установить». Картинки и настройки сохранятся."}
- else if(st==="perm"){$("updRes").textContent="Разреши установку из этого приложения и вернись назад — установка продолжится."}
+ else if(st==="ready"){apkDone();store.set("afterUpd",1);$("updRes").textContent="Скачано — нажми «Установить». Картинки и настройки сохранятся."}
+ else if(st==="perm"){store.set("afterUpd",1);$("updRes").textContent="Разреши установку из этого приложения и вернись назад — установка продолжится."}
  else{apkDone();$("updRes").textContent="Не получилось скачать, попробуй ещё раз"}};
 $("updApk").onclick=()=>{buzz(10);if(!upd)return;
  if(window.Native&&Native.installApk){$("updApk").disabled=true;apkProg(-1);$("updRes").textContent="Скачиваю…";Native.installApk(upd.app.apkUrl)}
@@ -938,7 +944,10 @@ function init(){layoutMatrix();buildWheel();renderMine();setColor("#FF0000");set
  b1=DotSlider($("bright1"),5,100,onBright);b2=DotSlider($("bright2"),5,100,onBright);setBrightUI(brightness);
  sp=DotSlider($("speed"),1,100,onSpeed);selectMode(selMode);renderScens(true);renderPics();updHist();paintMirror();updSave();
  thumb($("devPrev"),DEVPREV.map(r=>r.map(c=>rgbToHex(...c))),64,64,1);
- showPage(0);requestAnimationFrame(animate);paintStatus();paintApp();if(window.Native)Native.ready();
+ const afterUpd=store.get("afterUpd",0);store.set("afterUpd",0);
+ showPage(afterUpd?4:0);requestAnimationFrame(animate);paintStatus();paintApp();if(window.Native)Native.ready();
+ // после обновления сразу возвращаемся в настройки и показываем, что ещё осталось обновить
+ if(afterUpd)setTimeout(()=>checkUpdates(false),400);
  setTimeout(()=>checkUpdates(true),2500);
  setInterval(()=>{if(page===2)renderClock();checkNight()},1000);setInterval(sendTime,15*60*1000)}
 window.addEventListener("load",init);

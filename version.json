@@ -1,18 +1,18 @@
 {
   "app": {
-    "web": 4,
+    "web": 5,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 8,
-    "apk": 11,
+    "apk": 12,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 5,
+    "version": 6,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Рисование без задержек: пиксели пачками, Wi-Fi без энергосбережения, приём UDP в фоне на гирлянде",
+  "notes": "Гирлянда больше не гаснет во время рисования; потерянные пиксели восполняются; обновление приложения в один шаг",
   "pc": {
-    "version": 4,
+    "version": 5,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
