@@ -289,7 +289,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
   <div class="slrow"><div class="dots" id="speed"></div></div>
   <div class="rowhead"><span class="lbl">Яркость</span><span class="mut" id="bv2">75%</span></div>
   <div class="slrow"><div class="dots" id="bright2"></div></div>
-  <div style="margin-top:16px"><button class="btn" id="stop">СТОП</button></div>
+  <div style="margin-top:16px"><button class="btn" id="stop" disabled>СТОП</button></div>
  </div>
 </section>
 
@@ -370,7 +370,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=7;
+const WEB_VERSION=8;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -692,11 +692,11 @@ MODES.forEach(([k,t,d])=>{const el=document.createElement("div");el.className="m
 {const s=document.createElement("div");s.className="mode soon";s.innerHTML=svg("plus")+'<div style="font-size:11px">Скоро новые режимы</div>';$("mgrid").appendChild(s)}
 function selectMode(k){selMode=k;store.set("selMode",k);const m=MODES.find(m=>m[0]===k);$("selName").textContent=m[1];$("selDesc").textContent=m[2];
  sp.set(speedOf(k));$("spv").textContent=speedOf(k);renderModes()}
-function renderModes(){for(const k in cards){cards[k].tg.classList.toggle("on",activeMode===k);cards[k].el.classList.toggle("playing",activeMode===k)}
+function renderModes(){$("stop").disabled=!activeMode;for(const k in cards){cards[k].tg.classList.toggle("on",activeMode===k);cards[k].el.classList.toggle("playing",activeMode===k)}
  $("selHead").textContent=activeMode&&activeMode===selMode?"СЕЙЧАС ИГРАЕТ":"ВЫБРАННЫЙ РЕЖИМ"}
 function onSpeed(v){store.set("speed_"+selMode,v);$("spv").textContent=v;setSimSpeed(cards[selMode].sim,selMode,v);
  send({type:"speed",mode:selMode,value:v},"speed")}
-$("stop").onclick=()=>{buzz(10);stopMode()};
+$("stop").onclick=()=>{if(!activeMode)return;buzz(10);stopMode()};
 let lastT=performance.now();
 function animate(now){if(now-lastT<38||document.hidden||!previewsActive){if(!previewsActive)lastT=now;requestAnimationFrame(animate);return}const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
  if(previewsActive)for(const k in cards){const c=cards[k];c.sim.step(dt);const w=c.cv.clientWidth,h=c.cv.clientHeight;
