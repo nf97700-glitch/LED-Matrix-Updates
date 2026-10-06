@@ -39,6 +39,7 @@ border:1px solid var(--line);border-radius:14px;transition:border-color .3s}
 -webkit-overflow-scrolling:touch;visibility:hidden;contain:layout paint}
 .page.in-r,.page.in-l,.page.out-l,.page.out-r{will-change:transform,opacity}
 .page.active{visibility:visible;z-index:2}
+.page:not(.active) *{transition:none!important}
 .page.in-r{animation:inR .2s cubic-bezier(.2,.8,.2,1) both}
 .page.in-l{animation:inL .2s cubic-bezier(.2,.8,.2,1) both}
 .page.out-l{visibility:visible;pointer-events:none;animation:outL .14s ease-in both}
@@ -153,7 +154,7 @@ select,input[type=time]{background:#000;border:1px solid var(--line2);border-rad
 input[type=time]{font-size:15px;min-width:84px;color-scheme:dark}
 input[type=time]:disabled{color:#444;border-color:#222}
 select:focus,input[type=time]:focus{border-color:var(--accent)}
-.chip{height:28px;padding:0 10px;border:1px solid var(--line2);border-radius:14px;font-size:10px;letter-spacing:1px;color:var(--muted);transition:all .2s}
+.chip{height:28px;padding:0 10px;border:1px solid var(--line2);border-radius:14px;font-size:10px;letter-spacing:1px;color:var(--muted);transition:color .2s,border-color .2s}
 .chip.on{color:#fff;border-color:var(--accent)}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .day{height:30px;border:1px solid var(--line2);border-radius:15px;font-size:10px;color:var(--muted);transition:background .2s,color .2s,transform .15s}
@@ -370,7 +371,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=8;
+const WEB_VERSION=9;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
