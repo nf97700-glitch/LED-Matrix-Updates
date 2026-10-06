@@ -7,10 +7,10 @@
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 6,
+    "version": 7,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Кнопка «Стоп» неактивна, когда режим не идёт",
+  "notes": "Гирлянда сама переподключается к Wi-Fi и не забывает пароль; ВЫКЛ не просвечивает",
   "pc": {
     "version": 5,
     "runtime": 1,
