@@ -371,7 +371,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=9;
+const WEB_VERSION=10;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -402,7 +402,9 @@ document.querySelectorAll("svg[data-i]").forEach(s=>s.innerHTML=ICONS[s.dataset.
 const $=id=>document.getElementById(id);
 const QUICK=["#FF0000","#FF8000","#FFFF00","#00FF00","#00FFFF","#0000FF","#8000FF","#FF00FF","#FFFFFF"];
 const MODES=[["snow","Снег","Мягкие снежинки разной глубины"],["fire","Огонь","Языки пламени, угли и искры"],
-["rainbow","Радужная волна","Плавный перелив цветов"],["rain","Дождь","Капли в стиле Minecraft"]];
+["rainbow","Радужная волна","Плавный перелив цветов"],["rain","Дождь","Капли в стиле Minecraft"],
+["fireworks","Фейерверк","Ракеты, вспышки и искры"],["lava","Лава-лампа","Плавные капли лавы"],
+["stars","Звёздное небо","Мерцание и падающие звёзды"],["galaxy","Галактика","Вращающиеся спиральные рукава"]];
 const TZS=["UTC+3","UTC+5","UTC+8","UTC+0","UTC+6","UTC+7","UTC+12","UTC+2","UTC+4","UTC+9","UTC+10","UTC+11"];
 const WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"], WDF=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
 const MONTHS=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
@@ -620,6 +622,7 @@ let selMode=store.get("selMode","fire"),activeMode=null,previewsActive=false;
 const modeActive=()=>!!activeMode;
 function stopMode(silentIfOff){if(!activeMode&&silentIfOff)return;activeMode=null;send({type:"mode",mode:"off",speed:65},"mode");renderModes()}
 function startMode(k){activeMode=k;store.set("lastMode",k);
+ if(["fireworks","lava","stars","galaxy"].includes(k)&&net.online&&fwHave()<8)setTimeout(()=>toast("НУЖНА ПРОШИВКА V8 — ОБНОВИ В НАСТРОЙКАХ"),50);
  send({type:"mode",mode:k,speed:speedOf(k)},"mode");selectMode(k)}
 const speedOf=k=>store.get("speed_"+k,65);
 // --- симуляции (те же формулы, что в программе и прошивке) ---
@@ -678,11 +681,43 @@ class Snow{constructor(){this.sp=2;this.fl=Array.from({length:120},()=>this.nf(t
 class Rainbow{constructor(){this.t=0;this.k=1}step(dt){this.t+=dt*this.k;const t=this.t;
  this.frame=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>{let h=c*.03+r*.025-t*.25+.08*Math.sin(t+r*.3);h-=Math.floor(h);
   const v=230,i=Math.floor(h*6)%6,f=h*6-Math.floor(h*6),q=v*(1-f),w=v*f;return[[v,w,0],[q,v,0],[0,v,w],[0,q,v],[w,0,v],[v,0,q]][i]}))}}
-function makeSim(k){return k==="fire"?new Fire():k==="rain"?new Rain():k==="snow"?new Snow():new Rainbow()}
+function hsvf(h,s,v){h-=Math.floor(h);const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-s*f),t=v*(1-s*(1-f));return[[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6]}
+function fbAdd(fr,r,c,col,a){if(r<0||r>=ROWS||c<0||c>=COLS)return;const p=fr[r][c];for(let i=0;i<3;i++)p[i]=Math.min(255,p[i]+col[i]*a)}
+function fbSplat(fr,y,x,col,a,rad){for(let r=Math.trunc(y)-2;r<=Math.trunc(y)+2;r++)for(let c=Math.trunc(x)-2;c<=Math.trunc(x)+2;c++){const d=Math.hypot(r-y,c-x);if(d<rad+.5)fbAdd(fr,r,c,col,a*(1-d/(rad+.5)))}}
+class Fireworks{constructor(){this.k=1;this.rk=[];this.pt=[];this.frame=blank([0,0,0]);this.launch()}
+ launch(){if(this.rk.length<4)this.rk.push({x:rnd(3,COLS-4),y:ROWS-1,vy:-rnd(13,17),top:rnd(3,8),hue:Math.random()})}
+ step(dt){dt*=this.k;if(Math.random()<1.125*dt||(!this.rk.length&&!this.pt.length))this.launch();
+  const fr=this.frame,fade=Math.pow(.72,dt/.04),damp=Math.pow(.93,dt/.04);for(const row of fr)for(const p of row){p[0]*=fade;p[1]*=fade;p[2]*=fade}
+  this.rk=this.rk.filter(k=>{k.y+=k.vy*dt;k.vy+=6*dt;fbSplat(fr,k.y,k.x,[255,190,120],.9,.6);if(k.y>k.top&&k.vy<-2)return true;
+   const n=26+Math.floor(Math.random()*15),h2=k.hue+[0,.5,.15][Math.floor(Math.random()*3)];
+   for(let j=0;j<n&&this.pt.length<140;j++){const a=TAU*j/n+rnd(-.1,.1),sp=rnd(5,9);this.pt.push({x:k.x,y:k.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,age:0,life:rnd(1,1.6),hue:j%3?k.hue:h2})}
+   fbSplat(fr,k.y,k.x,[255,255,255],1,1.8);return false});
+  this.pt=this.pt.filter(p=>{p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=damp;p.vy=p.vy*damp+5*dt;if(p.age>p.life)return false;
+   const k=1-p.age/p.life,col=hsvf(p.hue,.85*Math.min(1,p.age*3),1).map(v=>v*255),tw=k>.35?1:.4+.6*Math.random();
+   fbAdd(fr,Math.round(p.y),Math.round(p.x),col,k*tw);return true})}}
+class Lava{constructor(){this.k=1;this.t=0;this.b=Array.from({length:5},(_,k)=>({x:3+3.2*k+rnd(-.5,.5),ph:rnd(0,6.28),sp:rnd(.25,.45),r:rnd(1.7,2.3)}));this.frame=blank([6,0,10])}
+ step(dt){this.t+=dt*this.k;const t=this.t,pos=this.b.map(b=>[b.x+1.5*Math.sin(t*.6+b.ph),ROWS/2+(ROWS/2-2)*Math.sin(t*b.sp*2+b.ph),b.r*b.r]),hs=.03*Math.sin(t);
+  this.frame=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>{let v=0;for(const[x,y,rr]of pos)v+=rr/((c-x)**2+(r-y)**2+.5);
+   if(v>1){const k=Math.min(1,(v-1)/1.5),col=hsvf(.95+.1*r/ROWS+hs,1-.35*k,.55+.45*k);return[255*col[0],255*col[1]*.8,255*col[2]]}
+   if(v>.7){const a=(v-.7)/.3;return[Math.max(6,70*a),8*a,Math.max(10,40*a)]}return[6,0,10]}))}}
+class Stars{constructor(){this.k=1;this.t=0;this.st=Array.from({length:38},()=>({r:Math.floor(Math.random()*(ROWS-3)),c:Math.floor(Math.random()*COLS),ph:rnd(0,6.28),f:rnd(.6,2.2),b:rnd(.25,.9),warm:Math.random()<.3}));this.sh=[];this.frame=blank([0,0,0])}
+ step(dt){dt*=this.k;this.t+=dt;const t=this.t,fr=Array.from({length:ROWS},(_,r)=>{const g=r/ROWS;return Array.from({length:COLS},()=>[1+2*g,1+g,4+5*g])});
+  for(let c=0;c<COLS;c++){const h=Math.trunc(2+1.2*Math.sin(c*.6)+.8*Math.sin(c*1.7));for(let r=ROWS-h;r<ROWS;r++)fr[r][c]=[0,0,1]}
+  for(const s of this.st){const w=.55+.45*Math.sin(t*s.f*3+s.ph);fbAdd(fr,s.r,s.c,s.warm?[255,210,150]:[200,220,255],s.b*w*w)}
+  if(Math.random()<.625*dt&&this.sh.length<3)this.sh.push({x:rnd(4,COLS),y:rnd(0,6),age:0});
+  this.sh=this.sh.filter(s=>{s.age+=dt;s.x-=22*dt;s.y+=11*dt;if(s.age>1.2||s.x<-6)return false;
+   for(let k=0;k<6;k++)fbAdd(fr,Math.round(s.y-k*.5),Math.round(s.x+k),[255,255,255],(1-k/6)*(1-s.age/1.2));return true});this.frame=fr}}
+class Galaxy{constructor(){this.k=1;this.t=0;this.frame=blank([0,0,0])}
+ step(dt){this.t+=dt*this.k;const t=this.t,cx=(COLS-1)/2,cy=(ROWS-1)/2,hs=.05*Math.sin(t);
+  this.frame=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>{const dx=c-cx,dy=r-cy,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
+   let v=Math.cos(2*(a-t*.9)-d*.55);v=v>0?v*v*v*Math.exp(-d/9):0;const core=Math.exp(-d*d/5),col=hsvf(.62+.25*d/12+hs,.8,1);
+   const p=[Math.min(255,255*(col[0]*v+core)),Math.min(255,255*(col[1]*v+core*.85)),Math.min(255,255*(col[2]*v+core*.6))];
+   if((r*31+c*17)%23===0){const a2=.5+.5*Math.sin(t*3+r+c);p[0]=Math.min(255,p[0]+120*a2);p[1]=Math.min(255,p[1]+120*a2);p[2]=Math.min(255,p[2]+140*a2)}return p}))}}
+function makeSim(k){return k==="fire"?new Fire():k==="rain"?new Rain():k==="snow"?new Snow():k==="fireworks"?new Fireworks():k==="lava"?new Lava():k==="stars"?new Stars():k==="galaxy"?new Galaxy():new Rainbow()}
 function setSimSpeed(sim,k,s){if(k==="snow")sim.sp=1.1+(s-1)*(4-1.1)/99;else sim.k=speedK(s)}
 // диод светит линейно, глаз видит тёмное ярче — ^0.45, как в программе
 const off3=hexToRgb(OFF);
-function ledView(frame,k){if(k!=="fire"&&k!=="rain")return frame;return frame.map(row=>row.map(led=>{const l=led.map(v=>255*Math.pow(Math.min(255,v)/255,.45));
+function ledView(frame,k){if(k==="snow"||k==="rainbow")return frame;return frame.map(row=>row.map(led=>{const l=led.map(v=>255*Math.pow(Math.min(255,v)/255,.45));
  const a=Math.min(1,Math.max(...l)/90);return off3.map((o,i)=>o*(1-a)+l[i]*a)}))}
 const cards={};
 MODES.forEach(([k,t,d])=>{const el=document.createElement("div");el.className="mode";
@@ -690,7 +725,6 @@ MODES.forEach(([k,t,d])=>{const el=document.createElement("div");el.className="m
  const sim=makeSim(k);setSimSpeed(sim,k,speedOf(k));cards[k]={el,sim,cv:el.querySelector("canvas"),tg:el.querySelector(".tg")};
  // режим выбирается только переключателем; нажатие по самой карточке нижний блок не меняет
  el.onclick=e=>{if(!e.target.classList.contains("tg"))return;buzz(6);activeMode===k?stopMode():startMode(k)};$("mgrid").appendChild(el)});
-{const s=document.createElement("div");s.className="mode soon";s.innerHTML=svg("plus")+'<div style="font-size:11px">Скоро новые режимы</div>';$("mgrid").appendChild(s)}
 function selectMode(k){selMode=k;store.set("selMode",k);const m=MODES.find(m=>m[0]===k);$("selName").textContent=m[1];$("selDesc").textContent=m[2];
  sp.set(speedOf(k));$("spv").textContent=speedOf(k);renderModes()}
 function renderModes(){$("stop").disabled=!activeMode;for(const k in cards){cards[k].tg.classList.toggle("on",activeMode===k);cards[k].el.classList.toggle("playing",activeMode===k)}
