@@ -1,6 +1,6 @@
 {
   "app": {
-    "web": 10,
+    "web": 11,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 8,
     "apk": 12,
@@ -10,9 +10,9 @@
     "version": 8,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "4 новых режима: фейерверк, лава-лампа, звёздное небо, галактика",
+  "notes": "Телефон и компьютер синхронизируются: режим, скорость и яркость",
   "pc": {
-    "version": 6,
+    "version": 7,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"

@@ -371,7 +371,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=10;
+const WEB_VERSION=11;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -467,6 +467,7 @@ function request(cmd,key,timeout){return new Promise(res=>{if(key){const q=net.q
 async function pump(){if(net.busy)return;const it=net.queue.shift();if(!it)return;net.busy=true;
  const r=await tcp(it.cmd,it.timeout);net.busy=false;if(it.res)it.res(r);pump()}
 function send(cmd,key){if(!net.online)return;
+ if(cmd.type==="brightness")net.brightAt=Date.now();if(cmd.type==="speed")net.speedAt=Date.now();
  if(UDP_TYPES.has(cmd.type)){if(cmd.type==="mode")net.modeAt=Date.now();if(window.Native)Native.udp(JSON.stringify(cmd));return}
  request(cmd,key)}
 // зеркало: смотришь на гирлянду с улицы — лево и право меняются местами (только то, что уходит на гирлянду)
@@ -489,7 +490,7 @@ function pollState(first){if(!net.online||net.queue.some(q=>q.key==="state"))ret
  request({type:"state"},"state",3000).then(r=>{if(!r)return;try{const s=JSON.parse(r);net.state=s;net.stateAt=Date.now();onState(s,first)}catch(e){
   // старая прошивка без команды state — просто работаем без синхронизации
   if(first)onState({},true)}})}
-setInterval(()=>pollState(false),3000);
+setInterval(()=>pollState(false),2000);
 window.onResume=()=>{net.stateAt=0;pollState(false)};
 /* ================= ВКЛАДКИ ================= */
 const TABS=[["draw","Рисунок"],["modes","Режимы"],["scen","Сценарии"],["pics","Картинки"],["set","Настройки"]];
@@ -915,6 +916,11 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  $("espTime").textContent=s.time?new Date((s.time+(s.tz||0)*3600)*1000).toISOString().substr(11,5)+" UTC"+(s.tz>=0?"+":"")+s.tz:"не задано";
  // режим, который реально играет на гирлянде (в т.ч. включённый сценарием)
  if("mode" in s){const m=s.mode&&s.mode!=="off"?s.mode:null;if(m!==activeMode&&Date.now()-net.modeAt>3000){activeMode=m;if(m&&cards[m])selectMode(m);else renderModes()}}
+ // синхронизация с программой на ПК: скорость и яркость, выставленные там, видны и здесь
+ if(activeMode&&cards[activeMode]&&typeof s.speed==="number"&&s.speed>=1&&s.speed<=100&&Date.now()-(net.speedAt||0)>3000&&Date.now()-net.modeAt>3000&&s.speed!==speedOf(activeMode)){
+  const k=activeMode;store.set("speed_"+k,s.speed);setSimSpeed(cards[k].sim,k,s.speed);if(selMode===k){sp.set(s.speed);$("spv").textContent=s.speed}}
+ if(!justConnected&&typeof s.brightness==="number"&&s.brightness>=1&&s.brightness<=100&&!nightActive()&&Date.now()-(net.brightAt||0)>3000&&s.brightness!==brightness){
+  brightness=s.brightness;store.set("brightness",brightness);setBrightUI(brightness)}
  if(s.sched&&Date.now()-scenDirty>4000&&!net.queue.some(q=>q.key==="sched")){const lines=JSON.stringify(s.sched||[]);
   if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);renderScens()}}
  if(justConnected){sendTime();nightApplied=null;checkNight();
