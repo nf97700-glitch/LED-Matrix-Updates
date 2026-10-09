@@ -226,6 +226,9 @@ border-radius:14px;pointer-events:none}
 .wcol div.on{color:#fff}
 .wsep{font-size:24px;color:var(--accent);width:12px;text-align:center}
 .sbtns{display:flex;gap:10px}
+.sbtns .btn{flex:1}
+#rnd.on{border-color:var(--accent);color:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
+#rnd svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
 .opt{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:1px solid var(--line)!important;border-radius:16px;margin-top:8px;text-align:left;
 transition:border-color .2s,transform .12s;animation:cardIn .35s cubic-bezier(.2,.8,.2,1) both}
 .opt:active{transform:scale(.97)}
@@ -290,7 +293,8 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
   <div class="slrow"><div class="dots" id="speed"></div></div>
   <div class="rowhead"><span class="lbl">Яркость</span><span class="mut" id="bv2">75%</span></div>
   <div class="slrow"><div class="dots" id="bright2"></div></div>
-  <div style="margin-top:16px"><button class="btn" id="stop" disabled>СТОП</button></div>
+  <div class="rowhead"><span class="lbl">Случайный: смена</span><button class="mbtn" id="rndEvery"><span>15 мин</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button></div>
+  <div class="sbtns" style="margin-top:16px"><button class="btn" id="rnd">СЛУЧАЙНО</button><button class="btn" id="stop" disabled>СТОП</button></div>
  </div>
 </section>
 
@@ -371,7 +375,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=12;
+const WEB_VERSION=13;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -396,6 +400,7 @@ play:'<path d="M7 4l13 8-13 8z"/>',
 upd:'<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4h-4"/>',
 phone:'<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
 eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+shuffle:'<path d="M3 7h3c5 0 7 10 12 10h3"/><path d="M3 17h3c2 0 3.5-1.6 4.7-3.5M13.3 9.5C14.5 8.1 16 7 18 7h3"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/>',
 eye_off:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/>'};
 const svg=(n,cls="i")=>`<svg class="${cls}" viewBox="0 0 24 24">${ICONS[n]}</svg>`;
 document.querySelectorAll("svg[data-i]").forEach(s=>s.innerHTML=ICONS[s.dataset.i]);
@@ -621,8 +626,23 @@ function onBright(v){brightness=v;store.set("brightness",v);setBrightUI(v);if(!n
 /* ================= РЕЖИМЫ ================= */
 let selMode=store.get("selMode","fire"),activeMode=null,previewsActive=false;
 const modeActive=()=>!!activeMode;
-function stopMode(silentIfOff){if(!activeMode&&silentIfOff)return;activeMode=null;send({type:"mode",mode:"off",speed:65},"mode");renderModes()}
-function startMode(k){activeMode=k;store.set("lastMode",k);
+function stopMode(silentIfOff){if(!activeMode&&!randOn&&silentIfOff)return;activeMode=null;randOn=false;paintRnd();send({type:"mode",mode:"off",speed:65},"mode");renderModes()}
+/* --- СЛУЧАЙНЫЙ режим: гирлянда сама меняет режимы каждые N минут (прошивка v10+) --- */
+const RND=[[1,"1 мин"],[5,"5 мин"],[10,"10 мин"],[15,"15 мин"],[30,"30 мин"],[60,"1 час"],[120,"2 часа"],[180,"3 часа"]];
+const rndLabel=m=>(RND.find(r=>r[0]===m)||[m,m+" мин"])[1];
+let rndEvery=store.get("rndEvery",15),randOn=false;
+const modeTitle=k=>k==="random"?"Случайный":(MODES.find(m=>m[0]===k)||[k,k])[1];
+function paintRnd(){$("rndEvery").firstChild.textContent=rndLabel(rndEvery);$("rnd").classList.toggle("on",randOn)}
+function startRandom(){if(net.online&&fwHave()<10)setTimeout(()=>toast("НУЖНА ПРОШИВКА V10 — ОБНОВИ В НАСТРОЙКАХ"),50);
+ randOn=true;store.set("lastMode","random");
+ send({type:"mode",mode:"random",every:rndEvery,speeds:MODES.map(m=>speedOf(m[0])).join(",")},"mode");paintRnd();renderModes();
+ // какой режим выпал — узнаём у гирлянды сразу
+ setTimeout(()=>{net.modeAt=0;pollState(false)},400)}
+// превью режима для списков; у «случайного» — мозаика из четырёх режимов
+function modeFrame(k){if(k==="random"){const fs=["fire","galaxy","lava","rainbow"].map(modeFrame);
+  return Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>fs[(r>=ROWS/2?2:0)+(c>=COLS/2?1:0)][r][c]))}
+ const sim=cards[k].sim;if(!cards[k].ctx)for(let n=0;n<120;n++)sim.step(.03);return ledView(sim.frame,k)}
+function startMode(k){activeMode=k;store.set("lastMode",k);randOn=false;paintRnd();
  if(["fireworks","lava","stars","galaxy"].includes(k)&&net.online&&fwHave()<8)setTimeout(()=>toast("НУЖНА ПРОШИВКА V8 — ОБНОВИ В НАСТРОЙКАХ"),50);
  send({type:"mode",mode:k,speed:speedOf(k)},"mode");selectMode(k)}
 const speedOf=k=>store.get("speed_"+k,65);
@@ -728,11 +748,15 @@ MODES.forEach(([k,t,d])=>{const el=document.createElement("div");el.className="m
  el.onclick=e=>{if(!e.target.classList.contains("tg"))return;buzz(6);activeMode===k?stopMode():startMode(k)};$("mgrid").appendChild(el)});
 function selectMode(k){selMode=k;store.set("selMode",k);const m=MODES.find(m=>m[0]===k);$("selName").textContent=m[1];$("selDesc").textContent=m[2];
  sp.set(speedOf(k));$("spv").textContent=speedOf(k);renderModes()}
-function renderModes(){$("stop").disabled=!activeMode;for(const k in cards){cards[k].tg.classList.toggle("on",activeMode===k);cards[k].el.classList.toggle("playing",activeMode===k)}
- $("selHead").textContent=activeMode&&activeMode===selMode?"СЕЙЧАС ИГРАЕТ":"ВЫБРАННЫЙ РЕЖИМ"}
-function onSpeed(v){store.set("speed_"+selMode,v);$("spv").textContent=v;setSimSpeed(cards[selMode].sim,selMode,v);
+function renderModes(){$("stop").disabled=!activeMode&&!randOn;for(const k in cards){cards[k].tg.classList.toggle("on",activeMode===k);cards[k].el.classList.toggle("playing",activeMode===k)}
+ $("selHead").textContent=activeMode&&activeMode===selMode?(randOn?"СЕЙЧАС ИГРАЕТ · СЛУЧАЙНО":"СЕЙЧАС ИГРАЕТ"):"ВЫБРАННЫЙ РЕЖИМ"}
+function onSpeed(v){store.set("speed_"+selMode,v);$("spv").textContent=v;setSimSpeed(cards[selMode].sim,selMode,v);if(activeMode&&activeMode!==selMode)return;
  send({type:"speed",mode:selMode,value:v},"speed")}
-$("stop").onclick=()=>{if(!activeMode)return;buzz(10);stopMode()};
+$("rnd").innerHTML=svg("shuffle")+"СЛУЧАЙНО";paintRnd();
+$("rnd").onclick=()=>{buzz(10);startRandom()};   // повторное нажатие — сразу следующий случайный режим
+$("rndEvery").onclick=()=>{buzz(6);pickList("СМЕНА РЕЖИМА",RND.map(r=>r[1]),rndLabel(rndEvery),v=>{rndEvery=RND.find(r=>r[1]===v)[0];
+ store.set("rndEvery",rndEvery);paintRnd();if(randOn)startRandom()})};
+$("stop").onclick=()=>{if(!activeMode&&!randOn)return;buzz(10);stopMode()};
 let lastT=performance.now();
 function animate(now){if(now-lastT<38||document.hidden||!previewsActive){if(!previewsActive)lastT=now;requestAnimationFrame(animate);return}const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
  if(previewsActive)for(const k in cards){const c=cards[k];c.sim.step(dt);const w=c.cv.clientWidth,h=c.cv.clientHeight;
@@ -767,9 +791,9 @@ function pickTime(cur,title,btn,cb){const[h0,m0]=cur.split(":").map(Number);focu
   bt.children[0].onclick=()=>{buzz(6);closeSheet()};
   bt.children[1].onclick=()=>{buzz(10);cb(txt);closeSheet()}})}
 function pickMode(cur,btn,cb){focusBtn(btn);
- openSheet("РЕЖИМ СЦЕНАРИЯ",sh=>{MODES.forEach(([k,t,d],i)=>{const o=document.createElement("button");o.className="opt"+(k===cur?" sel":"");o.style.animationDelay=i*.04+"s";
+ openSheet("РЕЖИМ СЦЕНАРИЯ",sh=>{[...MODES,["random","Случайный","Режимы сменяются каждые "+rndLabel(rndEvery)]].forEach(([k,t,d],i)=>{const o=document.createElement("button");o.className="opt"+(k===cur?" sel":"");o.style.animationDelay=i*.04+"s";
   o.innerHTML=`<canvas></canvas><div class="otx"><b>${t}</b><span>${d}</span></div><i></i>`;sh.appendChild(o);
-  const cv=o.querySelector("canvas");try{const sim=cards[k].sim;if(!cards[k].ctx)for(let n=0;n<120;n++)sim.step(.03);const ctx=fitCanvas(cv,42,44);drawLeds(ctx,ledView(sim.frame,k),42,44,1,"#000")}catch(e){}
+  const cv=o.querySelector("canvas");try{const ctx=fitCanvas(cv,42,44);drawLeds(ctx,modeFrame(k),42,44,1,"#000")}catch(e){}
   o.onclick=()=>{buzz(8);sh.querySelectorAll(".opt").forEach(x=>x.classList.toggle("sel",x===o));setTimeout(()=>{cb(k);closeSheet()},140)}})})}
 function pickList(title,items,cur,cb){openSheet(title,sh=>{const l=document.createElement("div");l.className="optlist";sh.appendChild(l);
  items.forEach(v=>{const o=document.createElement("button");o.className="opt small"+(v===cur?" sel":"");o.style.animation="none";
@@ -781,11 +805,11 @@ function pickList(title,items,cur,cb){openSheet(title,sh=>{const l=document.crea
 let scens=[],scenDirty=0,scenTimer;
 const mins=t=>{const[h,m]=t.split(":").map(Number);return h*60+m},hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 function parseSched(lines){return(lines||[]).map(l=>{const p=l.split(",");return{en:p[0]==="1",days:+p[1],on:hhmm(+p[2]),off:+p[3]>=0?hhmm(+p[3]):"",mode:p[4]}})
- .filter(s=>MODES.some(m=>m[0]===s.mode))}
-function schedLines(){return scens.map(s=>[s.en?1:0,s.days,mins(s.on),s.off?mins(s.off):-1,s.mode,speedOf(s.mode)].join(","))}
+ .filter(s=>s.mode==="random"||MODES.some(m=>m[0]===s.mode))}
+function schedLines(){return scens.map(s=>[s.en?1:0,s.days,mins(s.on),s.off?mins(s.off):-1,s.mode,s.mode==="random"?rndEvery:speedOf(s.mode)].join(","))}
 function saveScens(){scenDirty=Date.now();clearTimeout(scenTimer);scenTimer=setTimeout(()=>send({type:"schedule",items:schedLines()},"sched"),600)}
 function summary(s){const d=s.days;const when=d===127?"каждый день":d===31?"по будням":d===96?"по выходным":d===0?"дни не выбраны":WD.filter((_,i)=>d>>i&1).join(", ");
- return`${MODES.find(m=>m[0]===s.mode)[1]} в ${s.on}${s.off?", выкл. в "+s.off:""} · ${when}`}
+ return`${modeTitle(s.mode)} в ${s.on}${s.off?", выкл. в "+s.off:""} · ${when}`}
 const EMPTY_SCEN=()=>`<div class="empty">${svg("clock")}<b>СЦЕНАРИЕВ ПОКА НЕТ</b>Нажми «Добавить» — и гирлянда сама включит нужный режим в заданное время.</div>`;
 function updAddScen(){$("addScen").disabled=scens.length>=8}
 function renderScens(anim){const box=$("scenList");box.innerHTML="";updAddScen();
@@ -802,8 +826,8 @@ function scenEl(s,delay){const el=document.createElement("div");el.className="sc
   <div class="sum"></div>`;
   const sum=el.querySelector(".sum"),upd=()=>{sum.textContent=summary(s);saveScens()};sum.textContent=summary(s);
   el.querySelector(".tg").onclick=e=>{buzz(6);s.en=!s.en;e.target.classList.toggle("on",s.en);el.classList.toggle("offs",!s.en);upd()};
-  const mb=el.querySelector(".mbtn");mb.firstChild.textContent=MODES.find(m=>m[0]===s.mode)[1];
-  mb.onclick=()=>{buzz(6);pickMode(s.mode,mb,v=>{s.mode=v;mb.firstChild.textContent=MODES.find(m=>m[0]===v)[1];upd()})};
+  const mb=el.querySelector(".mbtn");mb.firstChild.textContent=modeTitle(s.mode);
+  mb.onclick=()=>{buzz(6);pickMode(s.mode,mb,v=>{s.mode=v;mb.firstChild.textContent=modeTitle(v);upd()})};
   const onB=el.querySelector(".tbtn.ton");
   onB.onclick=()=>{buzz(6);pickTime(s.on,"ВРЕМЯ ВКЛЮЧЕНИЯ",onB,v=>{s.on=v;onB.textContent=v;upd()})};
   const offIn=el.querySelector(".tbtn.off"),chip=el.querySelector(".chip");
@@ -887,7 +911,7 @@ function confirmScen(s,onYes){openSheet("УДАЛЕНИЕ",sh=>{const w=document
   <div class="mut" style="text-align:center;margin:4px 0 18px">Гирлянда перестанет включаться по нему</div>
   <div class="sbtns"><button class="btn">ОТМЕНА</button><button class="btn red">${svg("trash")}УДАЛИТЬ</button></div>`;
   w.querySelector(".cn").textContent=summary(s);sh.appendChild(w);
-  const cv=w.querySelector("canvas");try{const sim=cards[s.mode].sim;if(!cards[s.mode].ctx)for(let n=0;n<120;n++)sim.step(.03);const ctx=fitCanvas(cv,114,120);drawLeds(ctx,ledView(sim.frame,s.mode),114,120,2,"#000")}catch(e){}
+  const cv=w.querySelector("canvas");try{const ctx=fitCanvas(cv,114,120);drawLeds(ctx,modeFrame(s.mode),114,120,2,"#000")}catch(e){}
   const[no,yes]=w.querySelectorAll(".sbtns .btn");no.onclick=()=>{buzz(6);closeSheet()};yes.onclick=()=>{closeSheet();setTimeout(onYes,120)}})}
 function confirmDelete(p,onYes){openSheet("УДАЛЕНИЕ",sh=>{const w=document.createElement("div");w.className="cdel";
   w.innerHTML=`<div class="cprev"><canvas></canvas><div class="cq">?</div></div><div class="ct">Удалить картинку?</div><div class="cn"></div>
@@ -936,6 +960,7 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  $("espTime").textContent=s.time?new Date((s.time+(s.tz||0)*3600)*1000).toISOString().substr(11,5)+" UTC"+(s.tz>=0?"+":"")+s.tz:"не задано";
  // режим, который реально играет на гирлянде (в т.ч. включённый сценарием)
  if("mode" in s){const m=s.mode&&s.mode!=="off"?s.mode:null;if(m!==activeMode&&Date.now()-net.modeAt>3000){activeMode=m;if(m&&cards[m])selectMode(m);else renderModes()}}
+ if("rnd" in s&&Date.now()-net.modeAt>3000){const r=s.rnd>0;if(r&&s.rnd!==rndEvery){rndEvery=s.rnd;store.set("rndEvery",rndEvery)}if(r!==randOn){randOn=r;renderModes()}paintRnd()}
  // синхронизация с программой на ПК: скорость и яркость, выставленные там, видны и здесь
  if(activeMode&&cards[activeMode]&&typeof s.speed==="number"&&s.speed>=1&&s.speed<=100&&Date.now()-(net.speedAt||0)>3000&&Date.now()-net.modeAt>3000&&s.speed!==speedOf(activeMode)){
   const k=activeMode;store.set("speed_"+k,s.speed);setSimSpeed(cards[k].sim,k,s.speed);if(selMode===k){sp.set(s.speed);$("spv").textContent=s.speed}}
@@ -946,7 +971,7 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
   if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);renderScens()}}
  if(justConnected){sendTime();nightApplied=null;checkNight();
   if(typeof s.brightness==="number"&&!nightActive()&&s.brightness!==brightness){brightness=s.brightness;setBrightUI(brightness)}
-  if(store.get("startLast",false)&&!activeMode&&store.get("lastMode",null))startMode(store.get("lastMode"))}}
+  if(store.get("startLast",false)&&!activeMode&&store.get("lastMode",null)){if(store.get("lastMode")==="random")startRandom();else if(cards[store.get("lastMode")])startMode(store.get("lastMode"))}}}
 
 /* Приложение 1.7 умело привязываться к одной гирлянде. Привязку убрали:
    если старая часть приложения ещё помнит гирлянду и не видит её — отвязываем. */
