@@ -371,7 +371,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=11;
+const WEB_VERSION=12;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -837,6 +837,26 @@ function renderClock(){const n=new Date(),hh=String(n.getHours()).padStart(2,"0"
 document.addEventListener("contextmenu",e=>e.preventDefault());
 /* ================= КАРТИНКИ ================= */
 let pics=store.get("pics",[]),picsTimer;
+/* --- синхронизация картинок через гирлянду (прошивка v9+): общие для телефона и ПК --- */
+const newPicId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+pics.forEach((p,i)=>{if(!p.id)p.id=newPicId()+i;if(!p.t)p.t=Date.now()-(pics.length-i)*1000});store.set("pics",pics);
+let picsKnown=new Set(store.get("picsKnown",[])),picsSeenRev=null,picsSyncing=false,picsAgain=false;
+function picsChanged(){store.set("pics",pics);syncPics()}
+async function syncPics(){const st=net.state;if(!net.online||!st||typeof st.picsRev!=="number"||st.picsRev<0)return;
+ if(picsSyncing){picsAgain=true;return}picsSyncing=true;let changed=false;
+ try{for(let pass=0;pass<2;pass++){const r=await request({type:"pics_list"},"pics_list",5000);let list;try{list=JSON.parse(r)}catch(e){break}
+  const remote=new Map(list.items.map(it=>[it.id,it])),local=new Map(pics.map(p=>[p.id,p]));let ops=0;
+  for(const p of [...pics])if(!remote.has(p.id)){
+   if(picsKnown.has(p.id)){pics.splice(pics.indexOf(p),1);picsKnown.delete(p.id);changed=true}   // удалили на другом устройстве
+   else{const a=await request({type:"pic_put",id:p.id,name:p.name,t:p.t,rows:p.rows},null,5000);if(a==="OK"){picsKnown.add(p.id);ops++}
+    else if(a==="FULL"){toast("В ГИРЛЯНДЕ НЕТ МЕСТА ДЛЯ КАРТИНОК");break}}}
+  for(const [id,it] of remote)if(!local.has(id)){
+   if(picsKnown.has(id)){await request({type:"pic_del",id},null,4000);picsKnown.delete(id);ops++}   // удалили здесь
+   else{const g=await request({type:"pic_get",id},null,5000);try{const q=JSON.parse(g);pics.push({id,name:q.name,t:q.t,rows:q.rows});picsKnown.add(id);changed=true}catch(e){}}}
+  else picsKnown.add(id);
+  if(!ops){picsSeenRev=list.rev;break}}
+  if(changed){pics.sort((a,b)=>a.t-b.t);store.set("pics",pics);renderPics()}store.set("picsKnown",[...picsKnown])}
+ finally{picsSyncing=false;if(picsAgain){picsAgain=false;syncPics()}}}
 function rowsToPx(rows){return Array.from({length:ROWS},(_,r)=>{const row=((rows[r]||"")+"000000".repeat(COLS)).toUpperCase();
  return Array.from({length:COLS},(_,c)=>{const h="#"+row.substr(c*6,6);return(/^#[0-9A-F]{6}$/.test(h)&&!isOff(h))?h:OFF})})}
 function thumb(cv,px,w,h,gap){const ctx=fitCanvas(cv,w,h);drawLeds(ctx,px.map(r=>r.map(c=>isOff(c)?"#262626":c)),w,h,gap)}
@@ -853,7 +873,7 @@ function tileEl(p,i,g){{const t=document.createElement("div");t.className="tile"
   cv.onclick=()=>{buzz(8);const k=pics.indexOf(p);if(k>=0)openPic(k)};
   t.querySelector(".icon-btn").onclick=()=>{if(t.dataset.dying)return;buzz(8);confirmDelete(p,()=>delTile())};
   const delTile=()=>{if(t.dataset.dying)return;t.dataset.dying=1;buzz(14);
-   const k=pics.indexOf(p);if(k>=0)pics.splice(k,1);store.set("pics",pics);
+   const k=pics.indexOf(p);if(k>=0)pics.splice(k,1);picsChanged();
    t.style.transition="transform .2s,opacity .2s";t.style.transform="scale(.8)";t.style.opacity="0";t.style.pointerEvents="none";
    setTimeout(()=>{const g=$("pgrid"),rest=[...g.querySelectorAll(".tile")].filter(x=>x!==t),before=rest.map(x=>x.getBoundingClientRect());
     t.remove();rest.forEach((x,j)=>{const a=before[j],b=x.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;if(!dx&&!dy)return;
@@ -878,7 +898,7 @@ function confirmDelete(p,onYes){openSheet("УДАЛЕНИЕ",sh=>{const w=docume
 function plural(n){const a=n%10,b=n%100;return n+" "+(a===1&&b!==11?"картинка":(a>=2&&a<=4&&(b<12||b>14))?"картинки":"картинок")}
 const canvasEmpty=()=>M.px.every(r=>r.every(isOff));
 function updSave(){const e=canvasEmpty();$("savePic").disabled=e;const a=$("addThumb");if(a)a.disabled=e}
-function savePic(name){if(canvasEmpty()){toast("ХОЛСТ ПУСТОЙ — НАРИСУЙ ЧТО-НИБУДЬ");return}name=(name||"").trim()||"Картинка "+(pics.length+1);pics.push({name,rows:pictureRows(M.px)});store.set("pics",pics);renderPics();toast("КАРТИНКА СОХРАНЕНА ✓")}
+function savePic(name){if(canvasEmpty()){toast("ХОЛСТ ПУСТОЙ — НАРИСУЙ ЧТО-НИБУДЬ");return}name=(name||"").trim()||"Картинка "+(pics.length+1);pics.push({id:newPicId(),t:Date.now(),name,rows:pictureRows(M.px)});picsChanged();renderPics();toast("КАРТИНКА СОХРАНЕНА ✓")}
 function openPic(i){showPage(0);pushHist();setTimeout(()=>{waveTo(rowsToPx(pics[i].rows),"top");stopMode(true);sendPicture()},60)}
 $("savePic").onclick=()=>{buzz(12);savePic($("picName").value);$("picName").value=""};
 function renderCurPrev(){const cv=$("curPrev");thumb(cv,M.px,180,190,3)}
@@ -921,6 +941,7 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
   const k=activeMode;store.set("speed_"+k,s.speed);setSimSpeed(cards[k].sim,k,s.speed);if(selMode===k){sp.set(s.speed);$("spv").textContent=s.speed}}
  if(!justConnected&&typeof s.brightness==="number"&&s.brightness>=1&&s.brightness<=100&&!nightActive()&&Date.now()-(net.brightAt||0)>3000&&s.brightness!==brightness){
   brightness=s.brightness;store.set("brightness",brightness);setBrightUI(brightness)}
+ if(typeof s.picsRev==="number"&&s.picsRev>=0&&s.picsRev!==picsSeenRev)syncPics();
  if(s.sched&&Date.now()-scenDirty>4000&&!net.queue.some(q=>q.key==="sched")){const lines=JSON.stringify(s.sched||[]);
   if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);renderScens()}}
  if(justConnected){sendTime();nightApplied=null;checkNight();
