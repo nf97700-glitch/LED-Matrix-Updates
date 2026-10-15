@@ -345,8 +345,10 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t">Прошивка гирлянды</span><span class="r" id="fwVer">—</span></div>
   <div class="mut" id="updRes" style="margin-top:10px;min-height:16px"></div>
   <div class="prog" id="updProg"><i></i></div>
-  <div class="ubtns"><button class="btn red" id="updWeb" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button><button class="btn red" id="updApk" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button>
+  <div class="ubtns"><button class="btn red" id="updWeb" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button><button class="btn red" id="updApk" hidden>ОБНОВИТЬ ANDROID-ЧАСТЬ</button>
   <button class="btn red" id="updFw" hidden>ОБНОВИТЬ ПРОШИВКУ</button><button class="btn" id="updCheck"><svg viewBox="0 0 24 24" class="i" data-i="upd"></svg>ПРОВЕРИТЬ ОБНОВЛЕНИЯ</button></div>
+  <div class="note" id="updAppHint" hidden></div>
+  <div class="note" id="updFwHint" hidden></div>
  </div>
  <div class="card">
   <div class="h3"><b>ПАРАМЕТРЫ</b></div>
@@ -375,7 +377,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=14;
+const WEB_VERSION=15;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -1014,19 +1016,28 @@ window.onHttp=(id,r)=>{const f=net.cb[id];delete net.cb[id];if(f)f(r)};
 function paintApp(){$("appVer").textContent=(app.apkName||"—")+" · интерфейс "+app.web}
 function fwHave(){return net.state&&net.state.fw?net.state.fw:(net.online?1:0)}
 function paintFw(){$("fwVer").textContent=net.online?"v"+fwHave():"—";paintUpd()}
-function paintUpd(){const u=upd;const auto=!!(window.Native&&Native.installApk);
- // умеем ставить APK сами — сразу предлагаем его (в нём и новый интерфейс), без промежуточного шага
- const web=u&&u.app&&u.app.web>app.web&&(u.app.minApk||0)<=app.apk&&!(auto&&u.app.apk>app.apk);
- const apk=u&&u.app&&u.app.apk>app.apk&&!web;const fw=u&&u.firmware&&net.online&&u.firmware.version>fwHave()&&!(net.state&&net.state.ota==="run");
+function paintUpd(){const u=upd;
+ // Обычный путь — загрузить интерфейс и перезапустить, без установщика Android.
+ // APK нужен лишь при изменениях Android-части; minApk задаёт обязательный переход.
+ const web=!!(u&&u.app&&u.app.web>app.web&&(u.app.minApk||0)<=app.apk);
+ const apk=!!(u&&u.app&&u.app.apk>app.apk&&!web);
+ const fw=!!(u&&u.firmware&&(!net.online||u.firmware.version>fwHave())&&!(net.state&&net.state.ota==="run"));
  $("updWeb").hidden=!web;$("updApk").hidden=!apk;$("updFw").hidden=!fw;
- if(fw)$("updFw").textContent="ОБНОВИТЬ ПРОШИВКУ ДО v"+u.firmware.version;
- nav.querySelectorAll("button")[4].classList.toggle("upd",!!(web||apk||fw))}
+ $("updFw").disabled=!net.online;
+ if(fw)$("updFw").textContent=net.online?"ОБНОВИТЬ ПРОШИВКУ ДО v"+u.firmware.version:"ПРОШИВКА v"+u.firmware.version+" — НЕТ СВЯЗИ";
+ $("updAppHint").hidden=!(web||apk);
+ $("updAppHint").textContent=web?"Обновится внутри приложения и перезапустится — без установщика Android.":
+  "Обновляется Android-часть приложения. Потребуется подтверждение «Установить». Обычные обновления интерфейса идут без этого окна.";
+ $("updFwHint").hidden=!(u&&u.firmware);
+ $("updFwHint").textContent=!net.online?"Не видим гирлянду — её версию пока не проверить. Подключи ESP к домашнему Wi-Fi и дождись ONLINE либо прошей кабелем. Для обновления по воздуху интернет нужен самой ESP.":
+  "Для обновления по воздуху гирлянда должна иметь доступ в интернет. Если она в сети Matrix без интернета — сначала настрой домашний Wi-Fi.";
+ nav.querySelectorAll("button")[4].classList.toggle("upd",!!(web||apk||(fw&&net.online)))}
 async function checkUpdates(silent){if(updBusy)return;updBusy=true;$("updCheck").disabled=true;if(!silent)$("updRes").textContent="Проверяю…";
  const r=await http(UPDATES+"version.json");updBusy=false;$("updCheck").disabled=false;
  if(!r){if(!silent)$("updRes").textContent="Не удалось проверить — нет интернета?";return}
  try{upd=JSON.parse(r)}catch(e){if(!silent)$("updRes").textContent="Файл обновлений повреждён";return}
- paintUpd();const any=!$("updWeb").hidden||!$("updApk").hidden||!$("updFw").hidden;
- if(!silent)$("updRes").textContent=any?(upd.notes||"Есть обновление"):"Всё обновлено ✓"}
+ paintUpd();const any=!$("updWeb").hidden||!$("updApk").hidden||(!$("updFw").hidden&&!$("updFw").disabled);
+ if(!silent)$("updRes").textContent=any?(upd.notes||"Есть обновление"):(net.online?"Всё обновлено ✓":"Приложение обновлено ✓. Прошивку пока не проверили — нет связи с гирляндой.")}
 $("updCheck").onclick=()=>{buzz(10);checkUpdates(false)};
 $("updWeb").onclick=()=>{buzz(10);if(!upd)return;$("updWeb").disabled=true;$("updRes").textContent="Скачиваю…";$("updProg").classList.add("on");
  const id="h"+(++net.seq);net.cb[id]=r=>{$("updProg").classList.remove("on");$("updWeb").disabled=false;
