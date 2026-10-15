@@ -1,18 +1,18 @@
 {
   "app": {
-    "web": 13,
+    "web": 14,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
-    "minApk": 8,
-    "apk": 12,
+    "minApk": 13,
+    "apk": 13,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 10,
+    "version": 11,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Случайный режим: гирлянда сама меняет режимы; подтверждение удаления на ПК",
+  "notes": "GPIO34 и кнопка забыть Wi-Fi удалены; восстановление сетевых сокетов ESP, активный поиск и TCP-проверка; яркость и скорости синхронизируются по локальной сети даже без ESP. Для телефона нужен APK 2.2.",
   "pc": {
-    "version": 9,
+    "version": 10,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"

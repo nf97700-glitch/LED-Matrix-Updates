@@ -375,7 +375,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=13;
+const WEB_VERSION=14;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -462,6 +462,26 @@ dotText($("logo"),"LED MATRIX",2.6,1.0,"#FFFFFF","#1C1C1C");
    поиск и мгновенные команды — UDP 45454, картинки и настройки — TCP 3333.
    Сокеты открывает Android-часть приложения (window.Native). */
 const net={online:false,ip:null,name:null,state:null,busy:false,queue:[],cb:{},seq:0,modeAt:0};
+// Яркость и скорости: прямой локальный обмен, независимый от статуса ESP.
+const peer={id:Math.random().toString(36).slice(2)+Date.now().toString(36),clock:0,values:{},pending:{}};
+function controlKey(c){if(!c||!Number.isInteger(c.value)||c.value<1||c.value>100)return null;
+ if(c.type==="brightness")return "brightness";
+ if(c.type==="speed"&&MODES.some(m=>m[0]===c.mode))return "speed_"+c.mode;return null}
+function peerWire(m){if(window.Native&&Native.peer)Native.peer("LEDMATRIX_SYNC|"+JSON.stringify(m))}
+function publishControl(c){const k=controlKey(c);if(!k)return;
+ const m={v:1,id:peer.id,clock:++peer.clock,cmd:c};peer.values[k]=m;peerWire(m);
+ if(!net.online)peer.pending[k]=c}
+window.onPeer=text=>{try{const m=JSON.parse(text),c=m.cmd,k=controlKey(c);
+ if(!k||m.v!==1||typeof m.id!=="string"||!m.id.length||m.id.length>64||!Number.isSafeInteger(m.clock)||m.clock<=0)return;
+ peer.clock=Math.max(peer.clock,m.clock);const old=peer.values[k];
+ if(old&&(m.clock<old.clock||(m.clock===old.clock&&m.id<=old.id)))return;
+ peer.values[k]=m;if(!net.online)peer.pending[k]=c;else send(c,k);
+ if(c.type==="brightness"&&!nightActive()){brightness=c.value;store.set("brightness",brightness);setBrightUI(brightness);net.brightAt=Date.now()}
+ if(c.type==="speed"){store.set(k,c.value);if(cards[c.mode])setSimSpeed(cards[c.mode].sim,c.mode,c.value);
+  if(selMode===c.mode){sp.set(c.value);$("spv").textContent=c.value}net.speedAt=Date.now()}
+ }catch(e){}};
+setInterval(()=>Object.values(peer.values).forEach(peerWire),5000);
+function flushControls(){for(const c of Object.values(peer.pending))send(c,controlKey(c));peer.pending={}}
 const UDP_TYPES=new Set(["mode","speed","brightness","pixel","pixels","clear"]);
 function tcp(cmd,timeout){return new Promise(res=>{if(!window.Native){res(null);return}
  const id=++net.seq;net.cb[id]=res;Native.tcp(String(id),JSON.stringify(cmd),timeout||4000)})}
@@ -488,7 +508,7 @@ function flushPx(){pxT=0;if(!pxq.size)return;const all=new Map(pxPrev);pxq.forEa
  for(let i=0;i<a.length;i+=24){const p=a.slice(i,i+24);
   if(p.length===1)send({type:"pixel",col:p[0][0],row:p[0][1],color:p[0][2]});else send({type:"pixels",pixels:p})}}
 window.onLink=(online,ip,name)=>{const was=net.online;net.online=!!online;net.ip=ip||null;net.name=name||null;
- if(!net.online){onState(null,false)}else{if(!was)pollState(true);else paintStatus()}};
+ if(!net.online){onState(null,false)}else{if(!was){flushControls();pollState(true)}else paintStatus()}};
 function pollState(first){if(!net.online||net.queue.some(q=>q.key==="state"))return;
  // пока рисуешь — гирлянду не дёргаем
  if(!first&&(stroke||Date.now()-lastPaintAt<1500))return;
@@ -621,7 +641,7 @@ function DotSlider(el,min,max,onChange){const n=Math.max(12,Math.floor(el.client
  el.addEventListener("pointerup",()=>drag=false);return s}
 let brightness=store.get("brightness",75);
 function setBrightUI(v){b1.set(v);b2.set(v);$("bv1").textContent=$("bv2").textContent=v+"%"}
-function onBright(v){brightness=v;store.set("brightness",v);setBrightUI(v);if(!nightActive())send({type:"brightness",value:v},"bright")}
+function onBright(v){brightness=v;store.set("brightness",v);setBrightUI(v);publishControl({type:"brightness",value:v});if(!nightActive())send({type:"brightness",value:v},"bright")}
 
 /* ================= РЕЖИМЫ ================= */
 let selMode=store.get("selMode","fire"),activeMode=null,previewsActive=false;
@@ -750,7 +770,7 @@ function selectMode(k){selMode=k;store.set("selMode",k);const m=MODES.find(m=>m[
  sp.set(speedOf(k));$("spv").textContent=speedOf(k);renderModes()}
 function renderModes(){$("stop").disabled=!activeMode&&!randOn;for(const k in cards){cards[k].tg.classList.toggle("on",activeMode===k);cards[k].el.classList.toggle("playing",activeMode===k)}
  $("selHead").textContent=activeMode&&activeMode===selMode?(randOn?"СЕЙЧАС ИГРАЕТ · СЛУЧАЙНО":"СЕЙЧАС ИГРАЕТ"):"ВЫБРАННЫЙ РЕЖИМ"}
-function onSpeed(v){store.set("speed_"+selMode,v);$("spv").textContent=v;setSimSpeed(cards[selMode].sim,selMode,v);if(activeMode&&activeMode!==selMode)return;
+function onSpeed(v){store.set("speed_"+selMode,v);$("spv").textContent=v;setSimSpeed(cards[selMode].sim,selMode,v);publishControl({type:"speed",mode:selMode,value:v});
  send({type:"speed",mode:selMode,value:v},"speed")}
 $("rnd").innerHTML=svg("shuffle")+"СЛУЧАЙНО";paintRnd();
 $("rnd").onclick=()=>{buzz(10);startRandom()};   // повторное нажатие — сразу следующий случайный режим
@@ -961,6 +981,10 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  // режим, который реально играет на гирлянде (в т.ч. включённый сценарием)
  if("mode" in s){const m=s.mode&&s.mode!=="off"?s.mode:null;if(m!==activeMode&&Date.now()-net.modeAt>3000){activeMode=m;if(m&&cards[m])selectMode(m);else renderModes()}}
  if("rnd" in s&&Date.now()-net.modeAt>3000){const r=s.rnd>0;if(r&&s.rnd!==rndEvery){rndEvery=s.rnd;store.set("rndEvery",rndEvery)}if(r!==randOn){randOn=r;renderModes()}paintRnd()}
+ // Все скорости, в том числе режимов, которые сейчас не играют.
+ if(Array.isArray(s.speeds)&&Date.now()-(net.speedAt||0)>3000){MODES.forEach(([k],i)=>{const v=s.speeds[i];
+  if(!Number.isInteger(v)||v<1||v>100)return;store.set("speed_"+k,v);if(cards[k])setSimSpeed(cards[k].sim,k,v);
+  if(selMode===k){sp.set(v);$("spv").textContent=v}})}
  // синхронизация с программой на ПК: скорость и яркость, выставленные там, видны и здесь
  if(activeMode&&cards[activeMode]&&typeof s.speed==="number"&&s.speed>=1&&s.speed<=100&&Date.now()-(net.speedAt||0)>3000&&Date.now()-net.modeAt>3000&&s.speed!==speedOf(activeMode)){
   const k=activeMode;store.set("speed_"+k,s.speed);setSimSpeed(cards[k].sim,k,s.speed);if(selMode===k){sp.set(s.speed);$("spv").textContent=s.speed}}
@@ -970,7 +994,7 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  if(s.sched&&Date.now()-scenDirty>4000&&!net.queue.some(q=>q.key==="sched")){const lines=JSON.stringify(s.sched||[]);
   if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);renderScens()}}
  if(justConnected){sendTime();nightApplied=null;checkNight();
-  if(typeof s.brightness==="number"&&!nightActive()&&s.brightness!==brightness){brightness=s.brightness;setBrightUI(brightness)}
+  if(typeof s.brightness==="number"&&!nightActive()&&Date.now()-(net.brightAt||0)>3000&&s.brightness!==brightness){brightness=s.brightness;store.set("brightness",brightness);setBrightUI(brightness)}
   if(store.get("startLast",false)&&!activeMode&&store.get("lastMode",null)){if(store.get("lastMode")==="random")startRandom();else if(cards[store.get("lastMode")])startMode(store.get("lastMode"))}}}
 
 /* Приложение 1.7 умело привязываться к одной гирлянде. Привязку убрали:
