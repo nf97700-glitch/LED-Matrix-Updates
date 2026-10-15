@@ -3,16 +3,16 @@
     "web": 13,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 8,
-    "apk": 17,
+    "apk": 18,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
     "version": 10,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Иконка без букв: красный LED-вихрь на чёрном точечном фоне, также на экране запуска. ПК v14: повторные попытки загрузки обновлений при временных ошибках TLS/сети; проверка сертификатов сохранена. Локальная связь, управление, прошивка и список режимов не менялись.",
+  "notes": "Android 2.1.3: загрузка APK с повторными попытками и безопасной докачкой после обрыва; проверка подписи, пакета и версии до установки. ПК v15: видимое название LED Matrix без Studio; сохранения и папка установки прежние. Локальная связь с ESP, прошивка и режимы не менялись.",
   "pc": {
-    "version": 14,
+    "version": 15,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
