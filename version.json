@@ -1,20 +1,24 @@
 {
   "app": {
-    "web": 19,
-    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/app/index.html",
-    "minApk": 8,
-    "apk": 20,
-    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/app/LED-Matrix.apk"
+    "web": 20,
+    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/app/index.html",
+    "minApk": 21,
+    "apk": 21,
+    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/app/LED-Matrix.apk",
+    "webSha256": "4ec0e2249edf0dc0f26200f304db619e169c65de1fb1798c34c1dde2d439918f",
+    "apkSha256": "7290d08236b5a0fee3324e5db7d54ec25a64c2a1e41795ea1497d8b6aa9e1b48"
   },
   "firmware": {
-    "version": 15,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/firmware/LEDMatrix.bin"
+    "version": 16,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/firmware/LEDMatrix.bin",
+    "sha256": "af4961a4826e44f1803235d74846917d868b2c753ba9ad5f7267c780dc6ad36b"
   },
-  "notes": "Добавлены только 4 режима: Туннель, Северное сияние, Плазма и Калейдоскоп. Сначала обнови гирлянду по Wi-Fi до v15 и дождись её возвращения онлайн, затем программу ПК до v18 и интерфейс телефона до 19. APK20 остаётся прежним: телефон скачает только интерфейс и перезапустит его. Старые режимы, оформление, Wi-Fi и загрузчики не менялись.",
+  "notes": "Равноправная локальная синхронизация ПК ↔ телефон без ESP. Сначала обнови ПК до v19 и Android до 2.2, затем ESP до v16. Ограниченные повторы, докачка APK и проверка файлов. Прежние режимы, оформление и настройки Wi-Fi ESP сохранены.",
   "pc": {
-    "version": 18,
+    "version": 19,
     "runtime": 1,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/pc/LEDMatrixStudio.pyc",
-    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/pc/install.ps1"
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/pc/LEDMatrixStudio.pyc",
+    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/pc/install.ps1",
+    "sha256": "fa17444705346c6de2b014085ffc843f440938078c5fa91cc5baabb4a48b24c4"
   }
 }
