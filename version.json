@@ -1,18 +1,18 @@
 {
   "app": {
-    "web": 17,
+    "web": 13,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
-    "minApk": 14,
-    "apk": 14,
+    "minApk": 8,
+    "apk": 15,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 13,
+    "version": 10,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "ESP v13: первый запуск после v12 — сеть Matrix / 12345678, IP 192.168.4.1. Домашний Wi-Fi сохраняется; после перезапуска подключается автоматически, при сбое снова появляется Matrix. Попытки подключения не пересекаются. Интерфейс 17 уточняет настройку Wi-Fi; APK прежний 2.3.",
+  "notes": "Откат до сегодняшних изменений: исходная прошивка ESP v10, логика ПК v9 (номер установки 12), Android 2.1 с интерфейсом 13 (номер APK 15). ESP v10 ставится по USB. Данные намеренно не очищаются. В ESP восстановлена старая обработка GPIO34.",
   "pc": {
-    "version": 11,
+    "version": 12,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
