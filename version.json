@@ -1,20 +1,20 @@
 {
   "app": {
-    "web": 13,
-    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
+    "web": 19,
+    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/app/index.html",
     "minApk": 8,
     "apk": 20,
-    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
+    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 10,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
+    "version": 15,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/firmware/LEDMatrix.bin"
   },
-  "notes": "Полный откат к сохранённому комплекту до сегодняшних изменений: оригинальная ESP v10, код ПК v9 (служебный номер 17), Android 2.1 и интерфейс 13 (служебный номер APK20). Старые иконки и названия, без новых режимов и переделок загрузчиков. Данные специально не очищаются. ESP v10 при необходимости ставится по USB.",
+  "notes": "Добавлены только 4 режима: Туннель, Северное сияние, Плазма и Калейдоскоп. Сначала обнови гирлянду по Wi-Fi до v15 и дождись её возвращения онлайн, затем программу ПК до v18 и интерфейс телефона до 19. APK20 остаётся прежним: телефон скачает только интерфейс и перезапустит его. Старые режимы, оформление, Wi-Fi и загрузчики не менялись.",
   "pc": {
-    "version": 17,
+    "version": 18,
     "runtime": 1,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
-    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/pc/LEDMatrixStudio.pyc",
+    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe157225cc58911bbdfec7b3b4b77f0c554b6dae/pc/install.ps1"
   }
 }
