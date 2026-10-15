@@ -6,7 +6,7 @@ $dir = Join-Path $env:LOCALAPPDATA 'LED Matrix Studio'
 $zip = Join-Path $env:TEMP 'LED-Matrix-Studio-Windows.zip'
 
 Write-Host ''
-Write-Host '  LED Matrix - установка' -ForegroundColor Red
+Write-Host '  LED Matrix Studio - установка' -ForegroundColor Red
 Write-Host ''
 
 # закрываем запущенную программу, если она уже установлена
@@ -27,8 +27,8 @@ $pyw = Join-Path $dir 'runtime\pythonw.exe'
 $app = Join-Path $dir 'app'
 $shell = New-Object -ComObject WScript.Shell
 $targets = @(
-  (Join-Path ([Environment]::GetFolderPath('Desktop')) 'LED Matrix.lnk'),
-  (Join-Path ([Environment]::GetFolderPath('Programs')) 'LED Matrix.lnk')
+  (Join-Path ([Environment]::GetFolderPath('Desktop')) 'LED Matrix Studio.lnk'),
+  (Join-Path ([Environment]::GetFolderPath('Programs')) 'LED Matrix Studio.lnk')
 )
 foreach ($t in $targets) {
   $lnk = $shell.CreateShortcut($t)
@@ -36,9 +36,9 @@ foreach ($t in $targets) {
   $lnk.Arguments = '"' + (Join-Path $app 'LEDMatrixStudio.pyc') + '"'
   $lnk.WorkingDirectory = $app
   $lnk.IconLocation = (Join-Path $app 'icon.ico') + ',0'
-  $lnk.Description = 'LED Matrix'
+  $lnk.Description = 'LED Matrix Studio'
   $lnk.Save()
 }
 
-Write-Host '  Готово! Ярлык LED Matrix - на рабочем столе и в меню Пуск.' -ForegroundColor Green
+Write-Host '  Готово! Ярлык LED Matrix Studio - на рабочем столе и в меню Пуск.' -ForegroundColor Green
 Start-Process -FilePath $pyw -ArgumentList ('"' + (Join-Path $app 'LEDMatrixStudio.pyc') + '"') -WorkingDirectory $app

@@ -1,20 +1,20 @@
 {
   "app": {
-    "web": 18,
-    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/5b4debec83e99f254985142f7efa0fd1f90919a8/app/index.html",
-    "minApk": 18,
-    "apk": 19,
-    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/5b4debec83e99f254985142f7efa0fd1f90919a8/app/LED-Matrix.apk"
+    "web": 13,
+    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
+    "minApk": 8,
+    "apk": 20,
+    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 14,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/5b4debec83e99f254985142f7efa0fd1f90919a8/firmware/LEDMatrix.bin"
+    "version": 10,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Четыре новых режима: Туннель 2.0, Северное сияние, Плазма, Калейдоскоп. Нужна прошивка ESP v14. Есть предпросмотры, скорости, синхронизация, сценарии и случайный выбор среди всех 12 режимов. ПК v16: этапы соединения, проценты/КБ, повторные попытки и отмена обновления вместо многоминутного ожидания без пояснений. APK 2.1.4, интерфейс 18. Настройки Wi-Fi и прежние сохранения не стираются.",
+  "notes": "Полный откат к сохранённому комплекту до сегодняшних изменений: оригинальная ESP v10, код ПК v9 (служебный номер 17), Android 2.1 и интерфейс 13 (служебный номер APK20). Старые иконки и названия, без новых режимов и переделок загрузчиков. Данные специально не очищаются. ESP v10 при необходимости ставится по USB.",
   "pc": {
-    "version": 16,
+    "version": 17,
     "runtime": 1,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/5b4debec83e99f254985142f7efa0fd1f90919a8/pc/LEDMatrixStudio.pyc",
-    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/5b4debec83e99f254985142f7efa0fd1f90919a8/pc/install.ps1"
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
+    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
   }
 }
