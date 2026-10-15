@@ -375,7 +375,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=19;
+const WEB_VERSION=20;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -495,7 +495,7 @@ function pollState(first){if(!net.online||net.queue.some(q=>q.key==="state"))ret
  request({type:"state"},"state",3000).then(r=>{if(!r)return;try{const s=JSON.parse(r);net.state=s;net.stateAt=Date.now();onState(s,first)}catch(e){
   // старая прошивка без команды state — просто работаем без синхронизации
   if(first)onState({},true)}})}
-setInterval(()=>pollState(false),2000);
+setInterval(()=>pollState(false),5000);
 window.onResume=()=>{net.stateAt=0;pollState(false)};
 /* ================= ВКЛАДКИ ================= */
 const TABS=[["draw","Рисунок"],["modes","Режимы"],["scen","Сценарии"],["pics","Картинки"],["set","Настройки"]];
@@ -828,12 +828,12 @@ function pickList(title,items,cur,cb){openSheet(title,sh=>{const l=document.crea
  requestAnimationFrame(()=>{const s=l.querySelector(".sel");if(s)l.scrollTop=s.offsetTop-l.offsetTop-l.clientHeight/2+24})})}
 
 /* ================= СЦЕНАРИИ ================= */
-let scens=[],scenDirty=0,scenTimer;
+let scens=store.get("scenarios",[]),scenDirty=0,scenTimer;
 const mins=t=>{const[h,m]=t.split(":").map(Number);return h*60+m},hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 function parseSched(lines){return(lines||[]).map(l=>{const p=l.split(",");return{en:p[0]==="1",days:+p[1],on:hhmm(+p[2]),off:+p[3]>=0?hhmm(+p[3]):"",mode:p[4]}})
  .filter(s=>s.mode==="random"||MODES.some(m=>m[0]===s.mode))}
-function schedLines(){return scens.map(s=>[s.en?1:0,s.days,mins(s.on),s.off?mins(s.off):-1,s.mode,s.mode==="random"?rndEvery:speedOf(s.mode)].join(","))}
-function saveScens(){scenDirty=Date.now();clearTimeout(scenTimer);scenTimer=setTimeout(()=>send({type:"schedule",items:schedLines()},"sched"),600)}
+function schedLines(){return scens.slice(0,8).map(s=>[s.en?1:0,s.days,mins(s.on),s.off?mins(s.off):-1,s.mode,s.mode==="random"?rndEvery:speedOf(s.mode)].join(","))}
+function saveScens(){store.set("scenarios",scens);scenDirty=Date.now();clearTimeout(scenTimer);scenTimer=setTimeout(()=>{if(scens.length>8){toast("СЦЕНАРИИ СОХРАНЕНЫ, НО НЕ ОТПРАВЛЕНЫ: ЛИМИТ 8");return}send({type:"schedule",items:schedLines()},"sched")},600)}
 function summary(s){const d=s.days;const when=d===127?"каждый день":d===31?"по будням":d===96?"по выходным":d===0?"дни не выбраны":WD.filter((_,i)=>d>>i&1).join(", ");
  return`${modeTitle(s.mode)} в ${s.on}${s.off?", выкл. в "+s.off:""} · ${when}`}
 const EMPTY_SCEN=()=>`<div class="empty">${svg("clock")}<b>СЦЕНАРИЕВ ПОКА НЕТ</b>Нажми «Добавить» — и гирлянда сама включит нужный режим в заданное время.</div>`;
@@ -892,7 +892,7 @@ const newPicId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6)
 pics.forEach((p,i)=>{if(!p.id)p.id=newPicId()+i;if(!p.t)p.t=Date.now()-(pics.length-i)*1000});store.set("pics",pics);
 let picsKnown=new Set(store.get("picsKnown",[])),picsSeenRev=null,picsSyncing=false,picsAgain=false;
 function picsChanged(){store.set("pics",pics);syncPics()}
-async function syncPics(){const st=net.state;if(!net.online||!st||typeof st.picsRev!=="number"||st.picsRev<0)return;
+async function syncPics(){if(peerEnabled)return;const st=net.state;if(!net.online||!st||typeof st.picsRev!=="number"||st.picsRev<0)return;
  if(picsSyncing){picsAgain=true;return}picsSyncing=true;let changed=false;
  try{for(let pass=0;pass<2;pass++){const r=await request({type:"pics_list"},"pics_list",5000);let list;try{list=JSON.parse(r)}catch(e){break}
   const remote=new Map(list.items.map(it=>[it.id,it])),local=new Map(pics.map(p=>[p.id,p]));let ops=0;
@@ -993,8 +993,8 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  if(!justConnected&&typeof s.brightness==="number"&&s.brightness>=1&&s.brightness<=100&&!nightActive()&&Date.now()-(net.brightAt||0)>3000&&s.brightness!==brightness){
   brightness=s.brightness;store.set("brightness",brightness);setBrightUI(brightness)}
  if(typeof s.picsRev==="number"&&s.picsRev>=0&&s.picsRev!==picsSeenRev)syncPics();
- if(s.sched&&Date.now()-scenDirty>4000&&!net.queue.some(q=>q.key==="sched")){const lines=JSON.stringify(s.sched||[]);
-  if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);renderScens()}}
+ if(s.sched&&(!peerEnabled||(!scens.length&&peerLedger&&!Object.keys(peerLedger.records).some(k=>k.startsWith("scenario:"))))&&Date.now()-scenDirty>4000&&!net.queue.some(q=>q.key==="sched")){const lines=JSON.stringify(s.sched||[]);
+  if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);store.set("scenarios",scens);renderScens()}}
  if(justConnected){sendTime();nightApplied=null;checkNight();
   if(typeof s.brightness==="number"&&!nightActive()&&s.brightness!==brightness){brightness=s.brightness;setBrightUI(brightness)}
   if(store.get("startLast",false)&&!activeMode&&store.get("lastMode",null)){if(store.get("lastMode")==="random")startRandom();else if(cards[store.get("lastMode")])startMode(store.get("lastMode"))}}}
@@ -1009,7 +1009,7 @@ if(window.Native&&Native.pairInfo)setInterval(()=>{try{const p=JSON.parse(Native
 /* ================= ОБНОВЛЕНИЯ =================
    Файл version.json в репозитории обновлений: новая страница приложения ставится
    без переустановки, APK — через браузер, прошивка — по воздуху (гирлянда качает её сама). */
-let app={apk:0,apkName:"",web:WEB_VERSION},upd=null,updBusy=false,fwSent=0;
+let app={apk:0,apkName:"",web:WEB_VERSION},upd=null,updBusy=false,fwSent=0,fwRetry=0,fwRetryPending=false;
 try{if(window.Native&&Native.appInfo)app=Object.assign(app,JSON.parse(Native.appInfo()))}catch(e){}
 const http=url=>new Promise(res=>{if(!window.Native||!Native.httpGet){res(null);return}const id="h"+(++net.seq);net.cb[id]=res;Native.httpGet(id,url)});
 window.onHttp=(id,r)=>{const f=net.cb[id];delete net.cb[id];if(f)f(r)};
@@ -1019,7 +1019,7 @@ function paintFw(){$("fwVer").textContent=net.online?"v"+fwHave():"—";paintUpd
 function paintUpd(){const u=upd;const auto=!!(window.Native&&Native.installApk);
  // умеем ставить APK сами — сразу предлагаем его (в нём и новый интерфейс), без промежуточного шага
  const web=u&&u.app&&u.app.web>app.web&&(u.app.minApk||0)<=app.apk&&!(auto&&u.app.apk>app.apk);
- const apk=u&&u.app&&u.app.apk>app.apk&&!web;const fw=u&&u.firmware&&net.online&&u.firmware.version>fwHave()&&!(net.state&&net.state.ota==="run");
+ const apk=u&&u.app&&u.app.apk>app.apk&&!web;const fw=u&&u.firmware&&net.online&&u.firmware.version>fwHave()&&!fwRetryPending&&!fwSent&&!(net.state&&net.state.ota==="run");
  $("updWeb").hidden=!web;$("updApk").hidden=!apk;$("updFw").hidden=!fw;
  if(fw)$("updFw").textContent="ОБНОВИТЬ ПРОШИВКУ ДО v"+u.firmware.version;
  nav.querySelectorAll("button")[4].classList.toggle("upd",!!(web||apk||fw))}
@@ -1032,7 +1032,7 @@ async function checkUpdates(silent){if(updBusy)return;updBusy=true;$("updCheck")
 $("updCheck").onclick=()=>{buzz(10);checkUpdates(false)};
 $("updWeb").onclick=()=>{buzz(10);if(!upd)return;$("updWeb").disabled=true;$("updRes").textContent="Скачиваю…";$("updProg").classList.add("on");
  const id="h"+(++net.seq);net.cb[id]=r=>{$("updProg").classList.remove("on");$("updWeb").disabled=false;
-  if(r)store.set("afterUpd",1);$("updRes").textContent=r?"Готово — перезапускаю…":"Не получилось скачать, попробуй ещё раз"};Native.updateWeb(id,upd.app.webUrl,upd.app.web)};
+  if(r)store.set("afterUpd",1);$("updRes").textContent=r?"Готово — перезапускаю…":"Не получилось скачать, попробуй ещё раз"};Native.updateWeb(id,upd.app.webUrl,upd.app.web,upd.app.webSha256||"")};
 function apkProg(p){const b=$("updProg"),i=b.querySelector("i");b.classList.add("on");b.classList.toggle("det",p>=0);i.style.width=p>=0?p+"%":""}
 function apkDone(){const b=$("updProg");b.classList.remove("on","det");b.querySelector("i").style.width="";$("updApk").disabled=false}
 window.onApk=(st,v)=>{if(st==="progress"){apkProg(v);$("updRes").textContent="Скачиваю"+(v>=0?" "+v+"%":"…")}
@@ -1042,15 +1042,62 @@ window.onApk=(st,v)=>{if(st==="progress"){apkProg(v);$("updRes").textContent="С
 $("updApk").onclick=()=>{buzz(10);if(!upd)return;
  if(window.Native&&Native.installApk){$("updApk").disabled=true;apkProg(-1);$("updRes").textContent="Скачиваю…";Native.installApk(upd.app.apkUrl)}
  else{Native.openUrl(upd.app.apkUrl);$("updRes").textContent="Скачай файл и установи его поверх — картинки и настройки сохранятся."}};
-$("updFw").onclick=()=>{buzz(10);if(!upd||!net.online)return;$("updFw").disabled=true;
- request({type:"ota",url:upd.firmware.url},null,6000).then(r=>{$("updFw").disabled=false;
+$("updFw").onclick=()=>{if(fwRetryPending||fwSent)return;fwRetry=0;startOta()};
+function startOta(){fwRetryPending=false;buzz(10);if(!upd||!net.online)return;if(fwHave()>=upd.firmware.version)return;$("updFw").disabled=true;
+ request({type:"ota",url:upd.firmware.url,sha256:upd.firmware.sha256||""},null,6000).then(r=>{$("updFw").disabled=false;
   if(r&&r.startsWith("OK")){fwSent=Date.now();$("updRes").textContent="Гирлянда скачивает прошивку — нижний ряд покажет прогресс. Не выключай её.";$("updProg").classList.add("on")}
-  else $("updRes").textContent=r?"Гирлянда отказалась: старая прошивка не умеет обновляться по воздуху — прошей один раз кабелем.":"Нет ответа от гирлянды"})};
+  else $("updRes").textContent=r?"Гирлянда отказалась от команды обновления: "+r:"Нет ответа от гирлянды"})}
 function onOta(s){if(!fwSent)return;if(!s){return}
- if(s.ota&&s.ota.startsWith("fail")){fwSent=0;$("updProg").classList.remove("on");const m=s.ota.slice(5);$("updRes").textContent=/partition|раздел/i.test(m)?"В гирлянде нет места для обновления по воздуху. Прошей её один раз кабелем со схемой Partition Scheme: «Default 4MB with spiffs» — дальше обновления пойдут по воздуху.":"Ошибка обновления: "+m}
+ if(s.ota&&s.ota.startsWith("fail")){if(fwHave()<16&&fwRetry<2&&/timeout|time out|refused|connection|connect|stream/i.test(s.ota)){fwSent=0;fwRetry++;fwRetryPending=true;$("updRes").textContent="Обрыв загрузки — повтор "+(fwRetry+1)+"/3 через 3 секунды…";setTimeout(startOta,3000);return}fwSent=0;$("updProg").classList.remove("on");const m=s.ota.slice(5);$("updRes").textContent=/partition|раздел/i.test(m)?"В гирлянде нет места для обновления по воздуху. Прошей её один раз кабелем со схемой Partition Scheme: «Default 4MB with spiffs» — дальше обновления пойдут по воздуху.":"Ошибка обновления: "+m}
  else if(upd&&s.fw>=upd.firmware.version){fwSent=0;$("updProg").classList.remove("on");$("updRes").textContent="Прошивка обновлена до v"+s.fw+" ✓";toast("ПРОШИВКА ОБНОВЛЕНА ✓")}
- else if(Date.now()-fwSent>180000){fwSent=0;$("updProg").classList.remove("on");$("updRes").textContent="Не дождался гирлянды — проверь её позже"}
+ else if(Date.now()-fwSent>330000){fwSent=0;$("updProg").classList.remove("on");$("updRes").textContent="Не дождался гирлянды — проверь её позже"}
  paintUpd()}
+
+/* Equal LAN peers: independent LWW registers, tombstones, no command relay. */
+const peerEnabled=!!(window.Native&&Native.peerState&&Native.peerInfo);
+const peerStable=v=>Array.isArray(v)?'['+v.map(peerStable).join(',')+']':v&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+peerStable(v[k])).join(',')+'}':JSON.stringify(v);
+function peerValid(k,v){const integer=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b,rows=r=>Array.isArray(r)&&r.length===20&&r.every(s=>typeof s==='string'&&/^[0-9a-fA-F]{114}$/.test(s));
+ if(typeof k!=='string'||k.length>100)return false;
+ if(k.startsWith('picture:'))return /^[\w-]{1,80}$/.test(k.slice(8))&&(v===null||v&&typeof v==='object'&&v.id===k.slice(8)&&typeof v.name==='string'&&v.name.length<=120&&integer(v.t,0,Number.MAX_SAFE_INTEGER)&&rows(v.rows));
+ if(k.startsWith('scenario:'))return /^[\w-]{1,80}$/.test(k.slice(9))&&(v===null||v&&typeof v==='object'&&(v.mode==='random'||MODES.some(m=>m[0]===v.mode))&&typeof v.enabled==='boolean'&&integer(v.days,0,127)&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v.on)&&(v.off===''||/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v.off)));
+
+ if(k.startsWith('speed:'))return MODES.some(m=>m[0]===k.slice(6))&&integer(v,1,100);
+ if(k.startsWith('color:'))return /^[0-8]$/.test(k.slice(6))&&typeof v==='string'&&(v===''||/^#[a-fA-F0-9]{6}$/.test(v));
+ if(k==='canvas')return rows(v);if(k==='brightness')return integer(v,5,100);
+ if(k==='setting:night'||k==='setting:startLast')return typeof v==='boolean';if(k==='setting:timezone')return TZS.includes(v);
+ if(k==='mode')return !!v&&typeof v==='object'&&['off',...MODES.map(m=>m[0])].includes(v.key)&&typeof v.random==='boolean'&&integer(v.every,1,1440);return false;
+}
+class PeerLedger{constructor(node,records={}){this.node=node;this.records={};this.clock=0;this.merge(records)}
+ put(k,v,seed=false){if(!peerValid(k,v))return false;const old=this.records[k];if(old&&peerStable(old.v)===peerStable(v))return false;this.clock=Math.max(this.clock+1,Date.now());this.records[k]={s:[seed?0:this.clock,this.node],v:JSON.parse(JSON.stringify(v))};return true}
+ merge(incoming){const accepted=[];if(!incoming||typeof incoming!=='object'||Array.isArray(incoming)||Object.keys(incoming).length>2048)return accepted;
+ for(const[k,r]of Object.entries(incoming)){if(!r||!Array.isArray(r.s)||r.s.length!==2||!Number.isSafeInteger(r.s[0])||r.s[0]<0||typeof r.s[1]!=='string'||!/^[a-f0-9]{32}$/.test(r.s[1])||!peerValid(k,r.v))continue;const old=this.records[k];if(!old||r.s[0]>old.s[0]||r.s[0]===old.s[0]&&r.s[1]>old.s[1]){this.records[k]=JSON.parse(JSON.stringify(r));this.clock=Math.max(this.clock,r.s[0]);accepted.push(k)}}return accepted}}
+function peerScenarioId(v){let h=2166136261;for(const c of JSON.stringify([v.enabled,v.mode,v.on,v.off,v.days]))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return 's'+h.toString(16).padStart(8,'0')}
+let peerLedger=null,peerView={},peerDirty=false,peerApplying=false;
+function peerSnapshot(){const out={brightness,mode:{key:activeMode||'off',random:randOn,every:rndEvery},'setting:night':store.get('night',false),'setting:startLast':store.get('startLast',false),'setting:timezone':store.get('tz','UTC+3'),canvas:pictureRows(M.px)};
+ for(const[k]of MODES)out['speed:'+k]=speedOf(k);mine.forEach((c,i)=>out['color:'+i]=c||'');for(const p of pics)out['picture:'+p.id]={id:p.id,name:p.name,t:p.t,rows:p.rows};
+ for(const s of scens){const v={enabled:s.en,mode:s.mode,on:s.on,off:s.off,days:s.days};if(!s.id)s.id=peerScenarioId(v);out['scenario:'+s.id]=v}return out}
+function peerCapture(seed=false){if(!peerLedger||peerApplying)return;const now=peerSnapshot();let changed=false;
+ for(const[k,v]of Object.entries(now))if(!(k in peerView)||peerStable(v)!==peerStable(peerView[k])){if(seed&&peerLedger.records[k])continue;changed=peerLedger.put(k,v,seed)||changed}
+ for(const k of Object.keys(peerView))if(!(k in now)&&(k.startsWith('picture:')||k.startsWith('scenario:')))changed=peerLedger.put(k,null)||changed;
+ peerView=JSON.parse(JSON.stringify(now));if(changed){peerDirty=true;Native.peerState(JSON.stringify(peerLedger.records))}}
+function peerApply(keys){peerApplying=true;try{const values=Object.fromEntries(Object.entries(peerLedger.records).map(([k,r])=>[k,r.v]));
+ if(keys.includes('mode')){const v=values.mode;activeMode=v.key==='off'?null:v.key;randOn=v.random;rndEvery=v.every;store.set('rndEvery',rndEvery);if(activeMode){store.set('lastMode',activeMode);selectMode(activeMode)}net.modeAt=Date.now();paintRnd();renderModes()}
+ for(const k of keys){const v=values[k];if(k.startsWith('speed:')){const mode=k.slice(6);store.set('speed_'+mode,v);setSimSpeed(cards[mode].sim,mode,v);if(selMode===mode){sp.set(v);$('spv').textContent=v}net.speedAt=Date.now()}
+ else if(k==='brightness'){brightness=v;store.set('brightness',v);setBrightUI(v);net.brightAt=Date.now()}
+ else if(k==='setting:night'){store.set('night',v);$('night').classList.toggle('on',v);nightApplied=nightActive()}
+ else if(k==='setting:startLast'){store.set('startLast',v);$('lastMode').classList.toggle('on',v)}
+ else if(k==='setting:timezone'){store.set('tz',v);$('tz').value=v}}
+ if(keys.some(k=>k.startsWith('color:'))){for(let i=0;i<9;i++)if(('color:'+i)in values)mine[i]=values['color:'+i];store.set('mine',mine);renderMine()}
+ if(keys.some(k=>k.startsWith('picture:'))){pics=Object.entries(values).filter(([k,v])=>k.startsWith('picture:')&&v!==null).map(([k,v])=>v).sort((a,b)=>a.t-b.t||a.id.localeCompare(b.id));store.set('pics',pics);renderPics()}
+ if(keys.some(k=>k.startsWith('scenario:'))){scens=Object.entries(values).filter(([k,v])=>k.startsWith('scenario:')&&v!==null).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,v])=>({id:k.slice(9),en:v.enabled,mode:v.mode,on:v.on,off:v.off,days:v.days}));store.set('scenarios',scens);renderScens();if(scens.length>8)toast('СОХРАНЕНЫ ВСЕ СЦЕНАРИИ; В ГИРЛЯНДЕ ЛИМИТ 8')}
+ if(keys.includes('canvas')){M.wave=null;M.px=rowsToPx(values.canvas);paintMatrix();updSave()}
+ }finally{peerApplying=false}}
+window.onPeerRecords=text=>{if(!peerLedger)return;let r;try{r=typeof text==='string'?JSON.parse(text):text}catch(e){return}peerCapture();const keys=peerLedger.merge(r);if(!keys.length)return;peerApply(keys);peerView=JSON.parse(JSON.stringify(peerSnapshot()));peerDirty=true;Native.peerState(JSON.stringify(peerLedger.records))};
+function initPeers(){if(!peerEnabled)return;let info;try{info=JSON.parse(Native.peerInfo())}catch(e){return}if(!/^[a-f0-9]{32}$/.test(info.id))return;peerLedger=new PeerLedger(info.id,store.get('peerRecords2',{}));peerApply(Object.keys(peerLedger.records));peerCapture(true);Native.peerState(JSON.stringify(peerLedger.records));
+ const peerStatus=document.createElement('div');peerStatus.className='mut';peerStatus.style.marginTop='10px';$('updCheck').after(peerStatus);
+ setInterval(()=>{try{const i=JSON.parse(Native.peerInfo());peerStatus.textContent=i.error?'Локальная синхронизация недоступна: '+i.error:'Локальная синхронизация: устройств рядом — '+(i.peers||0)}catch(e){}},1000);
+ setInterval(peerCapture,100);setInterval(()=>{if(peerDirty){store.set('peerRecords2',peerLedger.records);store.set('scenarios',scens);peerDirty=false}},1000);
+ window.addEventListener('pagehide',()=>{peerCapture();store.set('peerRecords2',peerLedger.records);store.set('scenarios',scens)});}
 
 /* ================= СТАРТ ================= */
 let b1,b2,sp;
@@ -1059,7 +1106,7 @@ function init(){layoutMatrix();buildWheel();renderMine();setColor("#FF0000");set
  sp=DotSlider($("speed"),1,100,onSpeed);selectMode(selMode);renderScens(true);renderPics();updHist();paintMirror();updSave();
  thumb($("devPrev"),DEVPREV.map(r=>r.map(c=>rgbToHex(...c))),64,64,1);
  const afterUpd=store.get("afterUpd",0);store.set("afterUpd",0);
- showPage(afterUpd?4:0);requestAnimationFrame(animate);paintStatus();paintApp();if(window.Native)Native.ready();
+ initPeers();showPage(afterUpd?4:0);requestAnimationFrame(animate);paintStatus();paintApp();if(window.Native)Native.ready();
  // после обновления сразу возвращаемся в настройки и показываем, что ещё осталось обновить
  if(afterUpd)setTimeout(()=>checkUpdates(false),400);
  setTimeout(()=>checkUpdates(true),2500);
