@@ -1,18 +1,18 @@
 {
   "app": {
-    "web": 15,
+    "web": 16,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
-    "minApk": 13,
-    "apk": 13,
+    "minApk": 14,
+    "apk": 14,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 11,
+    "version": 12,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Обычные обновления интерфейса — без установщика, только перезапуск. Обновление Android-части обозначено отдельно. Если ESP не в сети, показана причина недоступности прошивки.",
+  "notes": "Исправление связи: ONLINE только по ответу ESP, подтверждение команд, независимые TCP-клиенты, резервная Matrix при отсутствии домашнего Wi-Fi, синхронизация видимой скорости. ESP v12, ПК v11, Android 2.3 (интерфейс 16).",
   "pc": {
-    "version": 10,
+    "version": 11,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"

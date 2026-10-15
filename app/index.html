@@ -338,6 +338,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="wifi"></svg><span class="t">Сеть</span><span class="r" id="netV">—</span></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t">IP-адрес</span><span class="r" id="ipV">—</span></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="clock"></svg><span class="t">Время гирлянды</span><span class="r" id="espTime">—</span></div>
+  <div class="note" id="linkDiag">Ответ ESP ещё не получен.</div>
  </div>
  <div class="card">
   <div class="h3"><b>ОБНОВЛЕНИЯ</b></div>
@@ -377,7 +378,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=15;
+const WEB_VERSION=16;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -472,31 +473,37 @@ function controlKey(c){if(!c||!Number.isInteger(c.value)||c.value<1||c.value>100
 function peerWire(m){if(window.Native&&Native.peer)Native.peer("LEDMATRIX_SYNC|"+JSON.stringify(m))}
 function publishControl(c){const k=controlKey(c);if(!k)return;
  const m={v:1,id:peer.id,clock:++peer.clock,cmd:c};peer.values[k]=m;peerWire(m);
- if(!net.online)peer.pending[k]=c}
+ peer.pending[k]=c}
 window.onPeer=text=>{try{const m=JSON.parse(text),c=m.cmd,k=controlKey(c);
  if(!k||m.v!==1||typeof m.id!=="string"||!m.id.length||m.id.length>64||!Number.isSafeInteger(m.clock)||m.clock<=0)return;
  peer.clock=Math.max(peer.clock,m.clock);const old=peer.values[k];
  if(old&&(m.clock<old.clock||(m.clock===old.clock&&m.id<=old.id)))return;
- peer.values[k]=m;if(!net.online)peer.pending[k]=c;else send(c,k);
- if(c.type==="brightness"&&!nightActive()){brightness=c.value;store.set("brightness",brightness);setBrightUI(brightness);net.brightAt=Date.now()}
+ peer.values[k]=m;if(!m.replay){peer.pending[k]=c;if(net.online)send(c,k)}
+ if(c.type==="brightness"&&!nightActive()){brightness=c.value;store.set("brightness",brightness);setBrightUI(brightness);if(!m.replay)net.brightAt=Date.now()}
  if(c.type==="speed"){store.set(k,c.value);if(cards[c.mode])setSimSpeed(cards[c.mode].sim,c.mode,c.value);
-  if(selMode===c.mode){sp.set(c.value);$("spv").textContent=c.value}net.speedAt=Date.now()}
+  if(!m.replay&&selMode!==c.mode)selectMode(c.mode);if(selMode===c.mode){sp.set(c.value);$("spv").textContent=c.value}if(!m.replay)net.speedAt=Date.now()}
  }catch(e){}};
-setInterval(()=>Object.values(peer.values).forEach(peerWire),5000);
-function flushControls(){for(const c of Object.values(peer.pending))send(c,controlKey(c));peer.pending={}}
-const UDP_TYPES=new Set(["mode","speed","brightness","pixel","pixels","clear"]);
+setInterval(()=>Object.values(peer.values).forEach(m=>peerWire({...m,replay:true})),5000);
+function flushControls(){for(const c of Object.values(peer.pending))send(c,controlKey(c))}
+const UDP_TYPES=new Set(["pixel","pixels"]);
+const controlTimers=new Map();
 function tcp(cmd,timeout){return new Promise(res=>{if(!window.Native){res(null);return}
- const id=++net.seq;net.cb[id]=res;Native.tcp(String(id),JSON.stringify(cmd),timeout||4000)})}
+ const id=++net.seq;net.cb[id]=res;setTimeout(()=>{if(net.cb[id]){delete net.cb[id];res(null)}},(timeout||4000)+3500);Native.tcp(String(id),JSON.stringify(cmd),timeout||4000)})}
 window.onTcp=(id,reply)=>{const f=net.cb[id];delete net.cb[id];if(f)f(reply)};
 // TCP-команды идут строго по очереди: у ESP32 одно соединение за раз
 function request(cmd,key,timeout){return new Promise(res=>{if(key){const q=net.queue.find(q=>q.key===key);
- if(q){q.cmd=cmd;const old=q.res;q.res=r=>{old&&old(r);res(r)};return}}net.queue.push({cmd,key,res,timeout});pump()})}
+ if(q){q.res("SUPERSEDED");q.cmd=cmd;q.res=res;return}}net.queue.push({cmd,key,res,timeout});pump()})}
 async function pump(){if(net.busy)return;const it=net.queue.shift();if(!it)return;net.busy=true;
  const r=await tcp(it.cmd,it.timeout);net.busy=false;if(it.res)it.res(r);pump()}
 function send(cmd,key){if(!net.online)return;
- if(cmd.type==="brightness")net.brightAt=Date.now();if(cmd.type==="speed")net.speedAt=Date.now();
- if(UDP_TYPES.has(cmd.type)){if(cmd.type==="mode")net.modeAt=Date.now();if(window.Native)Native.udp(JSON.stringify(cmd));return}
- request(cmd,key)}
+ if(cmd.type==="brightness")net.brightAt=Date.now();if(cmd.type==="speed")net.speedAt=Date.now();if(cmd.type==="mode")net.modeAt=Date.now();
+ if(UDP_TYPES.has(cmd.type)){if(window.Native)Native.udp(JSON.stringify(cmd));return}
+ const queue=()=>request(cmd,key,3000).then(r=>{if(r==="SUPERSEDED")return;
+  if(r==="OK"){const k=controlKey(cmd);if(k&&JSON.stringify(peer.pending[k])===JSON.stringify(cmd))delete peer.pending[k];net.commandError=null}
+  else{net.commandError=r||"Нет подтверждения команды";toast("НЕТ ПОДТВЕРЖДЕНИЯ КОМАНДЫ");pollState(false)}});
+ if(cmd.type==="speed"||cmd.type==="brightness"){
+  const k=cmd.type+(cmd.mode||"");clearTimeout(controlTimers.get(k));controlTimers.set(k,setTimeout(()=>{controlTimers.delete(k);if(net.online)queue()},120));
+ }else queue()}
 // зеркало: смотришь на гирлянду с улицы — лево и право меняются местами (только то, что уходит на гирлянду)
 let mirror=store.get("mirror",false);
 // пиксели копятся ~12 мс и уходят одним UDP-пакетом (до 24 штук): меньше пакетов — ничего не теряется
@@ -509,16 +516,18 @@ function flushPx(){pxT=0;if(!pxq.size)return;const all=new Map(pxPrev);pxq.forEa
  const a=[...all.values()];pxq.clear();
  for(let i=0;i<a.length;i+=24){const p=a.slice(i,i+24);
   if(p.length===1)send({type:"pixel",col:p[0][0],row:p[0][1],color:p[0][2]});else send({type:"pixels",pixels:p})}}
-window.onLink=(online,ip,name)=>{const was=net.online;net.online=!!online;net.ip=ip||null;net.name=name||null;
- if(!net.online){onState(null,false)}else{if(!was){flushControls();pollState(true)}else paintStatus()}};
-function pollState(first){if(!net.online||net.queue.some(q=>q.key==="state"))return;
- // пока рисуешь — гирлянду не дёргаем
- if(!first&&(stroke||Date.now()-lastPaintAt<1500))return;
- request({type:"state"},"state",3000).then(r=>{if(!r)return;try{const s=JSON.parse(r);net.state=s;net.stateAt=Date.now();onState(s,first)}catch(e){
-  // старая прошивка без команды state — просто работаем без синхронизации
-  if(first)onState({},true)}})}
+function validState(s){return s&&Number.isInteger(s.fw)&&s.fw>=1&&["off",...MODES.map(m=>m[0])].includes(s.mode)&&Number.isInteger(s.brightness)&&s.brightness>=1&&s.brightness<=100}
+window.onDeviceState=s=>{if(!validState(s))return;const first=!net.online;net.online=true;net.state=s;net.stateAt=Date.now();if(Object.keys(peer.pending).length)flushControls();onState(s,first)};
+window.onLink=(online,ip,name)=>{net.candidate=!!online;net.ip=ip||net.ip;net.name=name||net.name;
+ if(app.protocol>=2){if(!online){net.online=false;onState(null,false)}else paintStatus();return}
+ if(online)pollState(!net.online);else if(Date.now()-(net.stateAt||0)>12000){net.online=false;onState(null,false)}};
+function pollState(first){if(app.protocol>=2)return;
+ if((!net.online&&!net.candidate)||net.pollBusy)return;
+ if(!first&&(stroke||Date.now()-lastPaintAt<1500)&&Date.now()-(net.stateAt||0)<5000)return;
+ net.pollBusy=true;request({type:"state"},"state",2000).then(r=>{net.pollBusy=false;try{const s=JSON.parse(r);if(validState(s))onDeviceState(s)}catch(e){}
+  if(Date.now()-(net.stateAt||0)>12000){net.online=false;onState(null,false)}})}
 setInterval(()=>pollState(false),2000);
-window.onResume=()=>{net.stateAt=0;pollState(false)};
+window.onResume=()=>{if(app.protocol<2)pollState(false)};
 /* ================= ВКЛАДКИ ================= */
 const TABS=[["draw","Рисунок"],["modes","Режимы"],["scen","Сценарии"],["pics","Картинки"],["set","Настройки"]];
 let page=-1;
@@ -977,6 +986,7 @@ function paintStatus(){const on=net.online;if(on)everOnline=true;
  $("devState").textContent=on?"Подключена":(everOnline?"Не в сети":"Поиск…");
  $("ipV").textContent=net.ip||"—";if(net.name)$("devName").textContent=net.name;paintFw()}
 function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
+ const d=s||net.state;$("linkDiag").textContent=d?"Ответ ESP: v"+d.fw+(typeof d.uptime==="number"?" · работает "+d.uptime+" с":"")+(d.rssi?" · Wi-Fi "+d.rssi+" dBm":"")+(typeof d.resetReason==="number"?" · код перезапуска "+d.resetReason:"")+(net.commandError?" · "+net.commandError:""):"Ответ ESP ещё не получен.";
  if(!s){if(page===2)renderClock();return}
  if(s.name)$("devName").textContent=s.name;if("ap" in s)$("netV").textContent=s.ap?"Точка доступа «Matrix»":(s.ssid||"—");
  $("espTime").textContent=s.time?new Date((s.time+(s.tz||0)*3600)*1000).toISOString().substr(11,5)+" UTC"+(s.tz>=0?"+":"")+s.tz:"не задано";
@@ -1014,14 +1024,14 @@ try{if(window.Native&&Native.appInfo)app=Object.assign(app,JSON.parse(Native.app
 const http=url=>new Promise(res=>{if(!window.Native||!Native.httpGet){res(null);return}const id="h"+(++net.seq);net.cb[id]=res;Native.httpGet(id,url)});
 window.onHttp=(id,r)=>{const f=net.cb[id];delete net.cb[id];if(f)f(r)};
 function paintApp(){$("appVer").textContent=(app.apkName||"—")+" · интерфейс "+app.web}
-function fwHave(){return net.state&&net.state.fw?net.state.fw:(net.online?1:0)}
-function paintFw(){$("fwVer").textContent=net.online?"v"+fwHave():"—";paintUpd()}
+function fwHave(){return net.state&&Number.isInteger(net.state.fw)?net.state.fw:0}
+function paintFw(){$("fwVer").textContent=net.online&&fwHave()?"v"+fwHave():"—";paintUpd()}
 function paintUpd(){const u=upd;
  // Обычный путь — загрузить интерфейс и перезапустить, без установщика Android.
  // APK нужен лишь при изменениях Android-части; minApk задаёт обязательный переход.
  const web=!!(u&&u.app&&u.app.web>app.web&&(u.app.minApk||0)<=app.apk);
  const apk=!!(u&&u.app&&u.app.apk>app.apk&&!web);
- const fw=!!(u&&u.firmware&&(!net.online||u.firmware.version>fwHave())&&!(net.state&&net.state.ota==="run"));
+ const fw=!!(u&&u.firmware&&(!fwHave()||u.firmware.version>fwHave())&&!(net.state&&net.state.ota==="run"));
  $("updWeb").hidden=!web;$("updApk").hidden=!apk;$("updFw").hidden=!fw;
  $("updFw").disabled=!net.online;
  if(fw)$("updFw").textContent=net.online?"ОБНОВИТЬ ПРОШИВКУ ДО v"+u.firmware.version:"ПРОШИВКА v"+u.firmware.version+" — НЕТ СВЯЗИ";
