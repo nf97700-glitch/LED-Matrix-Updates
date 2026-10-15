@@ -3,16 +3,16 @@
     "web": 13,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 8,
-    "apk": 16,
+    "apk": 17,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
     "version": 10,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Только оформление: новая чёрно-красная LED-иконка телефона и ПК, тёмный экран запуска Android без белой подложки. Сеть, управление, интерфейс 13 и прошивка ESP v10 не менялись. Новые режимы в релиз не добавлены.",
+  "notes": "Иконка без букв: красный LED-вихрь на чёрном точечном фоне, также на экране запуска. ПК v14: повторные попытки загрузки обновлений при временных ошибках TLS/сети; проверка сертификатов сохранена. Локальная связь, управление, прошивка и список режимов не менялись.",
   "pc": {
-    "version": 13,
+    "version": 14,
     "runtime": 1,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
