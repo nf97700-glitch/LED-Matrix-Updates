@@ -378,7 +378,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 <script>
 "use strict";
 const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=16;
+const WEB_VERSION=17;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -974,8 +974,14 @@ let pwVis=false;$("eye").onclick=()=>{pwVis=!pwVis;$("pass").type=pwVis?"text":"
 $("wifiGo").onclick=async()=>{const ssid=$("ssid").value.trim();if(!ssid){$("wifiRes").textContent="Введи имя сети";return}
  if(!net.online){$("wifiRes").textContent="Гирлянда не в сети";return}buzz(10);$("wifiGo").disabled=true;$("wifiRes").textContent="Подключаю гирлянду…";
  const r=await request({ssid,password:$("pass").value},null,20000);$("wifiGo").disabled=false;
- $("wifiRes").textContent=r&&r.startsWith("OK")?"Готово! Гирлянда подключилась к «"+ssid+"». Подключи телефон к этой же сети — приложение найдёт её само.":
-  (r||"Нет ответа — проверь имя сети и пароль").replace("ERROR:","Ошибка:");if(r&&r.startsWith("OK"))$("pass").value=""};
+ if(r&&r.startsWith("OK")){
+  $("pass").value="";
+  if(net.state&&net.state.fw>=13){
+   net.waitingWifi=ssid;
+   $("wifiRes").textContent="Сеть сохранена в ESP. Подключаюсь к «"+ssid+"»; пока оставайся в Matrix. При ошибке Matrix останется доступной.";
+  }else $("wifiRes").textContent="Готово! Гирлянда подключилась к «"+ssid+"». Подключи телефон к этой же сети — приложение найдёт её само.";
+ }else $("wifiRes").textContent=(r||"Нет ответа — проверь имя сети и пароль").replace("ERROR:","Ошибка:");
+};
 const DEVPREV=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>hsv2rgb(((c*.03+r*.025)%1+1)%1,1,.9)));
 
 /* ================= СОСТОЯНИЕ ================= */
@@ -988,6 +994,13 @@ function paintStatus(){const on=net.online;if(on)everOnline=true;
 function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  const d=s||net.state;$("linkDiag").textContent=d?"Ответ ESP: v"+d.fw+(typeof d.uptime==="number"?" · работает "+d.uptime+" с":"")+(d.rssi?" · Wi-Fi "+d.rssi+" dBm":"")+(typeof d.resetReason==="number"?" · код перезапуска "+d.resetReason:"")+(net.commandError?" · "+net.commandError:""):"Ответ ESP ещё не получен.";
  if(!s){if(page===2)renderClock();return}
+ if(net.waitingWifi){
+  if(s.ap===false&&s.ssid===net.waitingWifi){
+   $("wifiRes").textContent="Гирлянда подключилась к «"+net.waitingWifi+"». Теперь подключи телефон к этой домашней сети.";net.waitingWifi=null;
+  }else if(s.fw>=13&&s.wifiPhase===3){
+   $("wifiRes").textContent="Сеть «"+net.waitingWifi+"» пока недоступна. Matrix остаётся включённой, ESP повторит попытку. Можно исправить имя сети и пароль.";
+  }
+ }
  if(s.name)$("devName").textContent=s.name;if("ap" in s)$("netV").textContent=s.ap?"Точка доступа «Matrix»":(s.ssid||"—");
  $("espTime").textContent=s.time?new Date((s.time+(s.tz||0)*3600)*1000).toISOString().substr(11,5)+" UTC"+(s.tz>=0?"+":"")+s.tz:"не задано";
  // режим, который реально играет на гирлянде (в т.ч. включённый сценарием)

@@ -1,16 +1,16 @@
 {
   "app": {
-    "web": 16,
+    "web": 17,
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 14,
     "apk": 14,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
   },
   "firmware": {
-    "version": 12,
+    "version": 13,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/firmware/LEDMatrix.bin"
   },
-  "notes": "Исправление связи: ONLINE только по ответу ESP, подтверждение команд, независимые TCP-клиенты, резервная Matrix при отсутствии домашнего Wi-Fi, синхронизация видимой скорости. ESP v12, ПК v11, Android 2.3 (интерфейс 16).",
+  "notes": "ESP v13: первый запуск после v12 — сеть Matrix / 12345678, IP 192.168.4.1. Домашний Wi-Fi сохраняется; после перезапуска подключается автоматически, при сбое снова появляется Matrix. Попытки подключения не пересекаются. Интерфейс 17 уточняет настройку Wi-Fi; APK прежний 2.3.",
   "pc": {
     "version": 11,
     "runtime": 1,
