@@ -4,7 +4,7 @@
     "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/index.html",
     "minApk": 8,
     "apk": 18,
-    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/app/LED-Matrix.apk"
+    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/e9c66bf174eb81f67cfdd13812515fa4293edac5/app/LED-Matrix.apk"
   },
   "firmware": {
     "version": 10,
@@ -14,7 +14,7 @@
   "pc": {
     "version": 15,
     "runtime": 1,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/LEDMatrixStudio.pyc",
-    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/pc/install.ps1"
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/e9c66bf174eb81f67cfdd13812515fa4293edac5/pc/LEDMatrixStudio.pyc",
+    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/e9c66bf174eb81f67cfdd13812515fa4293edac5/pc/install.ps1"
   }
 }
