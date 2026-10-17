@@ -13,7 +13,7 @@
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/firmware/LEDMatrix.bin",
     "sha256": "af4961a4826e44f1803235d74846917d868b2c753ba9ad5f7267c780dc6ad36b"
   },
-  "notes": "Исправление только C3 9×20: прошивка18 совместима с ESP32 core2.0.17 и3.3.12; SHA-256 проверяется без Update.setSHA256 до завершения OTA. Приложения ПК21/APK22/интерфейс22 и исходная прошивка19×20v16 не менялись. Первая установка C3 по USB; физическая плата и OTA на ней не проверялись.",
+  "notes": "Исправление только C3 9×20 v19: сравнения обратной косой черты в двух JSON-функциях заменены на0x5C. Исправление SHA-256 изv18 сохранено. Полный исходник из ZIP скомпилирован сesp32-core3.3.12. ПК21, APK22/интерфейс22 и исходная гирлянда19×20v16 не менялись. Первая установка C3 — по USB; работу на плате нужно проверить.",
   "pc": {
     "version": 21,
     "runtime": 1,
@@ -31,12 +31,12 @@
       "rows": 20
     },
     "esp32c3-9x20": {
-      "version": 18,
+      "version": 19,
       "model": "esp32c3-9x20",
       "cols": 9,
       "rows": 20,
-      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/531e7db72200db0978e8ce3e5416795fb52a6743/firmware/esp32c3-9x20/LEDMatrix.bin",
-      "sha256": "ea6ac69de8ba0ca1cefe4c7fad639047e49a6f05bef89b5fca144ddd241544a7"
+      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/7465ead924fe84a3bb98f858e3717d964e60f046/firmware/esp32c3-9x20/LEDMatrix.bin",
+      "sha256": "6adbbff7e0f0ff621bd445361be747bc82ceff66157aec60be85117e658f8c6f"
     }
   }
 }
