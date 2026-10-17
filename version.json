@@ -1,24 +1,42 @@
 {
   "app": {
-    "web": 21,
-    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/968a87bc1722175cd387584cc316fcc06a1cb274/app/index.html",
-    "minApk": 21,
-    "apk": 21,
-    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/app/LED-Matrix.apk",
-    "webSha256": "07b8d2171374368977391afebce4899b17e057b759aebd242736b85d58e0dbd5",
-    "apkSha256": "7290d08236b5a0fee3324e5db7d54ec25a64c2a1e41795ea1497d8b6aa9e1b48"
+    "web": 22,
+    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/1c6d7345d7e6c7a6da12cccb3e906c6ea8515cd8/app/index.html",
+    "minApk": 22,
+    "apk": 22,
+    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/1c6d7345d7e6c7a6da12cccb3e906c6ea8515cd8/app/LED-Matrix.apk",
+    "webSha256": "0d77d299a973567cdc4f07904f045408ea3bf9373525d0daea5b001a82ea5f09",
+    "apkSha256": "7f40bb3fc4148fab51cf4bbcab33ede01b7cbd13e0c17b5d10b872c83857a54c"
   },
   "firmware": {
     "version": 16,
     "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/firmware/LEDMatrix.bin",
     "sha256": "af4961a4826e44f1803235d74846917d868b2c753ba9ad5f7267c780dc6ad36b"
   },
-  "notes": "ПК v20 и интерфейс телефона v21: холст больше не синхронизируется; картинки, сценарии и общие настройки продолжают синхронизацию напрямую между приложениями. Равная ширина карточек режимов на телефоне. Для Aborted на ESP v15 добавлены ограниченные повторы и уточнённое сообщение ошибки. APK21 и прошивка ESP16 не менялись; успешность OTA на конкретной ESP не подтверждена.",
+  "notes": "ПК21 и Android APK22/интерфейс22: выбор гирлянды19×20 или ESP32-C3 Super Mini9×20 через статус сверху, раздельные данные и прямая LAN-синхронизация без передачи холста. Новая C3: отдельная прошивка17, первая установка по USB. Исходная прошивка19×20 остаётся16 без изменений. В меню выбора доступны режим одной гирлянды и возврат к прежним ПК20/интерфейсу21. Проверены сборки и автоматические тесты; физическая C3 и OTA на ней требуют проверки пользователем.",
   "pc": {
-    "version": 20,
+    "version": 21,
     "runtime": 1,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/968a87bc1722175cd387584cc316fcc06a1cb274/pc/LEDMatrixStudio.pyc",
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/1c6d7345d7e6c7a6da12cccb3e906c6ea8515cd8/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/pc/install.ps1",
-    "sha256": "7d0617043a6e61d53b78a5c37ad1f0ba360a810119d2a6c59632894851f06532"
+    "sha256": "37c0d590eccf69bf3aa83f494912d3d5d0466bb307c7a05864f40b52b812a790"
+  },
+  "firmwares": {
+    "esp32-19x20": {
+      "version": 16,
+      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/firmware/LEDMatrix.bin",
+      "sha256": "af4961a4826e44f1803235d74846917d868b2c753ba9ad5f7267c780dc6ad36b",
+      "model": "esp32-19x20",
+      "cols": 19,
+      "rows": 20
+    },
+    "esp32c3-9x20": {
+      "version": 17,
+      "model": "esp32c3-9x20",
+      "cols": 9,
+      "rows": 20,
+      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/1c6d7345d7e6c7a6da12cccb3e906c6ea8515cd8/firmware/esp32c3-9x20/LEDMatrix.bin",
+      "sha256": "2e3da8c83c0c1d5717fe70fe5120d3ba535698c191863cc7ae008a6386ed62a9"
+    }
   }
 }
