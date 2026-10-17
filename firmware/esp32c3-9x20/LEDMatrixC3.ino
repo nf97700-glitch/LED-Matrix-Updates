@@ -25,7 +25,7 @@
 #include <LittleFS.h>
 
 // версия прошивки — приложение сравнивает её с последней и предлагает обновиться
-#define FW_VERSION 18
+#define FW_VERSION 19
 const char *DEVICE_MODEL = "esp32c3-9x20";
 String deviceIdentity;
 String discoveryMessage;
@@ -1491,7 +1491,7 @@ String jsonGetString(const String& j, const String& key, bool& found){
   String v = "";
   while(i < (int)j.length()){
     char c = j[i++];
-    if(c == '\\' && i < (int)j.length()){
+    if(c == 0x5C && i < (int)j.length()){
       char n = j[i++];
       if(n == 'n') v += '\n';
       else if(n == 't') v += '\t';
@@ -1674,7 +1674,7 @@ String jsonGetRaw(const String& j, const String& key, bool& found){
   int st = ++i;
   while(i < (int)j.length()){
     char c = j[i];
-    if(c == '\\'){ i += 2; continue; }
+    if(c == 0x5C){ i += 2; continue; }
     if(c == '"'){ found = true; return j.substring(st, i); }
     i++;
   }
