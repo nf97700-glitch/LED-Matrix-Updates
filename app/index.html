@@ -132,7 +132,7 @@ transition:transform .15s,border-color .2s;animation:pop .35s cubic-bezier(.34,1
 .mode{min-width:0;position:relative;border:1px solid var(--line);border-radius:18px;padding:10px;transition:transform .15s,border-color .3s,box-shadow .3s}
 .mode:active{transform:scale(.97)}
 .mode.playing{border-color:#5a1515;box-shadow:0 0 22px rgba(255,43,43,.18)}
-.mode canvas{display:block;width:100%;aspect-ratio:19/20;border-radius:10px}
+.mode canvas{display:block;width:100%;max-height:230px;aspect-ratio:var(--matrix-ratio,19/20);border-radius:10px}
 .mode .mt{display:flex;align-items:flex-start;justify-content:space-between;margin-top:8px;gap:6px}
 .mode .mt>div:first-child{flex:1;min-width:0;overflow-wrap:anywhere}
 .mode .mn{font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
@@ -176,7 +176,7 @@ select:focus,input[type=time]:focus{border-color:var(--accent)}
 .field:focus{border-color:#fff}
 .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tile{border:1px solid var(--line);border-radius:16px;padding:10px;animation:pop .35s cubic-bezier(.34,1.4,.5,1) both}
-.tile canvas{display:block;width:100%;aspect-ratio:19/20;border-radius:10px}
+.tile canvas{display:block;width:100%;aspect-ratio:var(--matrix-ratio,19/20);border-radius:10px}
 .tile .tn{display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;gap:6px}
 .tile .tn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ---------- настройки ---------- */
@@ -253,17 +253,23 @@ display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px rgba(
 #toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translate(-50%,20px);opacity:0;background:#fff;color:#000;
 padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-events:none;transition:all .35s cubic-bezier(.34,1.4,.5,1);z-index:9;white-space:nowrap}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+.deviceChevron{display:inline-block;width:6px;height:6px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(45deg);margin-left:3px;margin-top:-3px}
+#deviceMenu{position:absolute;right:14px;top:54px;width:min(350px,calc(100vw - 28px));padding:8px;border:1px solid #333;border-radius:15px;background:#080808;box-shadow:0 12px 30px #000c;z-index:20}
+#deviceMenu button{display:block;text-align:left;width:100%;padding:12px;border:0;border-radius:9px;background:transparent;color:#ddd;white-space:normal}
+#deviceMenu button.selected{background:#2a1010;color:#fff}
+#deviceMenu small{display:block;color:#888;margin-top:5px;font-size:10px}
+#deviceMenu .single{border-top:1px solid #252525;margin-top:5px;border-radius:0}
 </style>
 </head>
 <body>
 <div id="app">
-<header><canvas id="logo"></canvas><div class="pill"><div class="sdot search" id="sdot"></div><span id="stext">ПОИСК…</span></div></header>
+<header><canvas id="logo"></canvas><button class="pill" id="devicePicker" type="button" aria-label="Выбрать гирлянду" aria-expanded="false"><span class="sdot search" id="sdot"></span><span id="stext">ПОИСК…</span><span aria-hidden="true" class="deviceChevron"></span></button><div id="deviceMenu" hidden></div></header>
 <div id="pages">
 
 <!-- ===== РИСОВАНИЕ ===== -->
 <section class="page" id="p0">
  <div class="card">
-  <div class="h3"><b>ХОЛСТ · 19×20</b><div style="display:flex;gap:8px"><button class="btn sm hbtn" id="mirror"><svg viewBox="0 0 24 24" class="i" data-i="mirror"></svg></button><button class="btn sm hbtn" id="undo"><svg viewBox="0 0 24 24" class="i" data-i="undo"></svg></button><button class="btn sm hbtn" id="redo"><svg viewBox="0 0 24 24" class="i" data-i="redo"></svg></button></div></div>
+  <div class="h3"><b id="canvasTitle">ХОЛСТ</b><div style="display:flex;gap:8px"><button class="btn sm hbtn" id="mirror"><svg viewBox="0 0 24 24" class="i" data-i="mirror"></svg></button><button class="btn sm hbtn" id="undo"><svg viewBox="0 0 24 24" class="i" data-i="undo"></svg></button><button class="btn sm hbtn" id="redo"><svg viewBox="0 0 24 24" class="i" data-i="redo"></svg></button></div></div>
   <div id="matrixWrap"><canvas id="matrix"></canvas></div>
   <div class="tools" id="tools"></div>
  </div>
@@ -335,7 +341,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
  <div class="card">
   <div class="h3"><b>ГИРЛЯНДА</b></div>
   <div class="dev"><canvas id="devPrev"></canvas><div><div style="font-size:17px;font-weight:700" id="devName">ESP32 Matrix</div>
-   <div class="mut">19 лент · 380 светодиодов</div><div class="mut" id="devState" style="margin-top:4px">Поиск…</div></div></div>
+   <div class="mut" id="matrixSize"></div><div class="mut" id="devState" style="margin-top:4px">Поиск…</div></div></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="wifi"></svg><span class="t">Сеть</span><span class="r" id="netV">—</span></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t">IP-адрес</span><span class="r" id="ipV">—</span></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="clock"></svg><span class="t">Время гирлянды</span><span class="r" id="espTime">—</span></div>
@@ -343,7 +349,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
  <div class="card">
   <div class="h3"><b>ОБНОВЛЕНИЯ</b></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="phone"></svg><span class="t">Приложение</span><span class="r" id="appVer">—</span></div>
-  <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t">Прошивка гирлянды</span><span class="r" id="fwVer">—</span></div>
+  <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="chip"></svg><span class="t" id="fwModel">Прошивка гирлянды</span><span class="r" id="fwVer">—</span></div>
   <div class="mut" id="updRes" style="margin-top:10px;min-height:16px"></div>
   <div class="prog" id="updProg"><i></i></div>
   <div class="ubtns"><button class="btn red" id="updWeb" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button><button class="btn red" id="updApk" hidden>ОБНОВИТЬ ПРИЛОЖЕНИЕ</button>
@@ -375,8 +381,19 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
 
 <script>
 "use strict";
-const COLS=19, ROWS=20, OFF="#161616", ACCENT="#FF2B2B";
-const WEB_VERSION=21;
+const MATRIX_PROFILES={
+ 'esp32-19x20':{cols:19,rows:20,name:'Matrix · 19×20'},
+ 'esp32c3-9x20':{cols:9,rows:20,name:'ESP32-C3 Super Mini · 9×20'}
+};
+let matrixInfo={profile:'esp32-19x20',dual:true,devices:[]};
+try{if(window.Native&&Native.matrixInfo)matrixInfo=Object.assign(matrixInfo,JSON.parse(Native.matrixInfo()));else matrixInfo=Object.assign(matrixInfo,JSON.parse(localStorage.getItem('lm_matrixInfo')||'{}'))}catch(e){}
+if(!MATRIX_PROFILES[matrixInfo.profile]||!matrixInfo.dual)matrixInfo.profile='esp32-19x20';
+const MATRIX_PROFILE=matrixInfo.profile,PROFILE=MATRIX_PROFILES[MATRIX_PROFILE];
+const COLS=PROFILE.cols, ROWS=PROFILE.rows, OFF="#161616", ACCENT="#FF2B2B";
+document.documentElement.style.setProperty('--matrix-ratio',COLS+'/'+ROWS);
+function selectedFirmware(v){return MATRIX_PROFILE==='esp32-19x20'?(v.firmware||{}):((v.firmwares||{})[MATRIX_PROFILE]||{})}
+
+const WEB_VERSION=22;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -414,8 +431,8 @@ const MODES=[["snow","Снег","Мягкие снежинки разной гл
 const TZS=["UTC+3","UTC+5","UTC+8","UTC+0","UTC+6","UTC+7","UTC+12","UTC+2","UTC+4","UTC+9","UTC+10","UTC+11"];
 const WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"], WDF=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
 const MONTHS=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-const store={get(k,d){try{const v=localStorage.getItem("lm_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
-set(k,v){try{localStorage.setItem("lm_"+k,JSON.stringify(v))}catch(e){}}};
+const store={get(k,d){try{const v=localStorage.getItem("lm_"+(MATRIX_PROFILE==='esp32-19x20'?'':MATRIX_PROFILE+'_')+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+set(k,v){try{localStorage.setItem("lm_"+(MATRIX_PROFILE==='esp32-19x20'?'':MATRIX_PROFILE+'_')+k,JSON.stringify(v))}catch(e){}}};
 const buzz=(ms=8)=>{try{window.Native?Native.vibrate(ms):(navigator.vibrate&&navigator.vibrate(ms))}catch(e){}};
 let toastTimer;function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1600)}
 
@@ -493,7 +510,7 @@ window.onLink=(online,ip,name)=>{const was=net.online;net.online=!!online;net.ip
 function pollState(first){if(!net.online||net.queue.some(q=>q.key==="state"))return;
  // пока рисуешь — гирлянду не дёргаем
  if(!first&&(stroke||Date.now()-lastPaintAt<1500))return;
- request({type:"state"},"state",3000).then(r=>{if(!r)return;try{const s=JSON.parse(r);net.state=s;net.stateAt=Date.now();onState(s,first)}catch(e){
+ request({type:"state"},"state",3000).then(r=>{if(!r)return;try{const s=JSON.parse(r);if(MATRIX_PROFILE==='esp32c3-9x20'&&(s.model!==MATRIX_PROFILE||s.cols!==COLS||s.rows!==ROWS))return;net.state=s;net.stateAt=Date.now();onState(s,first)}catch(e){
   // старая прошивка без команды state — просто работаем без синхронизации
   if(first)onState({},true)}})}
 setInterval(()=>pollState(false),5000);
@@ -519,7 +536,7 @@ window.addEventListener("resize",()=>{placePill(page);layoutMatrix()});
 const M={px:[],hist:[],redo:[],tool:"draw",color:"#FF0000",wave:null};
 for(let r=0;r<ROWS;r++)M.px.push(Array(COLS).fill(OFF));
 const mcv=$("matrix");let mctx,mw,mh,geo;
-function layoutMatrix(){mw=mcv.parentElement.clientWidth;mh=mw*(20/19)*1.0;mcv.style.height=mh+"px";mctx=fitCanvas(mcv,mw,mh);
+function layoutMatrix(){mw=mcv.parentElement.clientWidth;mh=COLS===19?mw*ROWS/COLS:Math.min(mw*ROWS/COLS,Math.max(360,innerHeight*.6));mcv.style.height=mh+"px";mctx=fitCanvas(mcv,mw,mh);
  const gap=3,d=Math.min((mw-gap*(COLS-1))/COLS,(mh-gap*(ROWS-1))/ROWS);
  geo={d,gap,ox:(mw-(COLS*d+(COLS-1)*gap))/2,oy:(mh-(ROWS*d+(ROWS-1)*gap))/2};paintMatrix()}
 function paintMatrix(){if(!mctx)return;mctx.fillStyle="#000";mctx.fillRect(0,0,mw,mh);const{d,gap,ox,oy}=geo;const W=M.wave;
@@ -657,10 +674,10 @@ function firePal(h){if(h<=0)return[0,0,0];if(h>=1)return PAL[6].slice(1);for(let
 const speedK=s=>{s=Math.max(1,Math.min(100,s));return s<=65?.3+.7*(s-1)/64:1+(s-65)/35};
 const rnd=(a,b)=>a+Math.random()*(b-a),TAU=Math.PI*2;
 function blank(v){return Array.from({length:ROWS},()=>Array.from({length:COLS},()=>v.slice()))}
-class Fire{constructor(){this.t=0;this.k=1;this.base=ROWS-2;this.main={cx:(COLS-1)/2,h:ROWS+.5,w:4.4,amp:1.8,freq:.55,phase:rnd(0,TAU),seed:1,age:0,life:-1,power:1};
- this.small=Array.from({length:4},()=>this.ns(true));this.sparks=[];this.frame=blank([0,0,0])}
- ns(sp){const cx=Math.random()<.5?rnd(2,5.5):rnd(COLS-6.5,COLS-3),life=rnd(3,7);
-  return{cx,h:rnd(5,10),w:rnd(1.3,2.2),amp:rnd(.5,1.1),freq:rnd(.8,1.3),phase:rnd(0,TAU),seed:rnd(2,100),age:sp?rnd(0,life):0,life,power:rnd(.55,.72)}}
+class Fire{constructor(){this.t=0;this.k=1;this.base=ROWS-2;this.main={cx:(COLS-1)/2,h:ROWS+.5,w:COLS===9?2.5:4.4,amp:COLS===9?1:1.8,freq:.55,phase:rnd(0,TAU),seed:1,age:0,life:-1,power:1};
+ this.small=Array.from({length:COLS===9?2:4},()=>this.ns(true));this.sparks=[];this.frame=blank([0,0,0])}
+ ns(sp){const cx=Math.random()<.5?(COLS===9?rnd(1,2.8):rnd(2,5.5)):(COLS===9?rnd(COLS-3.5,COLS-1.5):rnd(COLS-6.5,COLS-3)),life=rnd(3,7);
+  return{cx,h:rnd(5,10),w:COLS===9?rnd(.9,1.5):rnd(1.3,2.2),amp:rnd(.5,1.1),freq:rnd(.8,1.3),phase:rnd(0,TAU),seed:rnd(2,100),age:sp?rnd(0,life):0,life,power:rnd(.55,.72)}}
  g(f){return f.life<0?1:Math.max(0,Math.min(1,f.age/.8,(f.life-f.age)/1))}
  fh(f,g){return f.h*g*(.85+.15*fireNoise(this.t*2,f.seed*7.1))}
  fc(f,h,y){const w2=TAU*f.freq*this.t+f.phase;let s=f.amp*(Math.pow(y,1.5)*Math.sin(w2)+.45*y*y*Math.sin(w2*2.3+1.3));
@@ -679,24 +696,24 @@ class Fire{constructor(){this.t=0;this.k=1;this.base=ROWS-2;this.main={cx:(COLS-
   for(let c=0;c<COLS;c++){const n1=fireNoise(c*.8,t*.7+40),n2=fireNoise(c*2.1+11,t*1.9);let gl=.35+.45*n1+.2*n2;
    const near=Math.max(0,1-Math.abs(c-this.main.cx)/11);gl=Math.pow(Math.min(1,gl*(.65+.45*near)),1.4);const coal=[8+50*gl,1+7*gl,0];
    fr[ROWS-1][c]=coal;fr[base][c]=fr[base][c].map((v,i)=>Math.max(v,coal[i]*.45))}
-  if(this.sparks.length<25&&Math.random()<7.5*dt){const al=this.small.filter(f=>this.g(f)>.5);
+  if(this.sparks.length<(COLS===9?12:25)&&Math.random()<7.5*dt){const al=this.small.filter(f=>this.g(f)>.5);
    const f=(!al.length||Math.random()<.65)?this.main:al[Math.floor(Math.random()*al.length)];const height=this.fh(f,this.g(f)),hy=rnd(.45,.9)*height;
    this.sparks.push({x:this.fc(f,Math.trunc(hy),Math.min(1,hy/height))+rnd(-1,1),y:base-hy,vx:rnd(-1.2,1.2),vy:rnd(5,9),age:0,life:rnd(.5,1.2),wob:rnd(0,TAU)})}
   this.sparks=this.sparks.filter(s=>{s.age+=dt;s.x+=(s.vx+Math.sin(s.age*7+s.wob))*dt;s.y-=s.vy*dt;s.vy*=1-.6*dt;
    if(s.age>=s.life||s.y<-1)return false;const rr=Math.round(s.y),cc=Math.round(s.x);
    if(rr>=0&&rr<ROWS&&cc>=0&&cc<COLS){const a=1-s.age/s.life,m=.35+.65*a,sp=[(120+135*a)*m,(12+100*a)*m,10*a*m];fr[rr][cc]=fr[rr][cc].map((v,i)=>Math.max(v,sp[i]))}return true});
   this.frame=fr}}
-class Rain{constructor(){this.k=1;this.drops=Array.from({length:16},()=>this.nd(true));this.spl=[];this.frame=blank([0,1,4])}
+class Rain{constructor(){this.k=1;this.drops=Array.from({length:COLS===9?8:16},()=>this.nd(true));this.spl=[];this.frame=blank([0,1,4])}
  nd(sp){return{c:Math.floor(Math.random()*COLS),len:2+Math.floor(Math.random()*3),y:sp?rnd(-ROWS,ROWS):rnd(-6,-1),v:rnd(16,22),b:rnd(.55,1)}}
  step(dt){dt*=this.k;const g=ROWS-1,fr=blank([0,1,4]);for(let c=0;c<COLS;c++)fr[g][c]=c%3?[14,5,0]:[18,7,0];
-  this.drops.forEach((d,i)=>{d.y+=d.v*dt;const head=Math.floor(d.y);if(head>=g){if(this.spl.length<16)this.spl.push([d.c,0]);this.drops[i]=this.nd(false);return}
+  this.drops.forEach((d,i)=>{d.y+=d.v*dt;const head=Math.floor(d.y);if(head>=g){if(this.spl.length<(COLS===9?8:16))this.spl.push([d.c,0]);this.drops[i]=this.nd(false);return}
    for(let k=0;k<d.len;k++){const r=head-k;if(r>=0&&r<g){const a=d.b*(1-k/(d.len+.5));fr[r][d.c]=[12*a,30*a+1,150*a+4]}}});
   this.spl=this.spl.filter(s=>{s[1]+=dt;if(s[1]>.12)return false;const a=1-s[1]/.12;for(const dc of[-1,1]){const cc=s[0]+dc;if(cc>=0&&cc<COLS)fr[g-1][cc]=[16*a,40*a+1,170*a+4]}
    fr[g][s[0]]=[20,40,150];return true});this.frame=fr}}
-class Snow{constructor(){this.sp=2;this.fl=Array.from({length:120},()=>this.nf(true));this.ph=0}
+class Snow{constructor(){this.sp=2;this.fl=Array.from({length:Math.round(120*COLS/19)},()=>this.nf(true));this.ph=0}
  nf(first){return{x:rnd(-.5,COLS-.5),y:first?rnd(-4,ROWS):rnd(-3,-.5),depth:rnd(.05,1),sway:rnd(.25,1.1),phase:rnd(0,TAU)}}
  step(dt){this.ph+=.05;this.fl.forEach(f=>{f.y+=this.sp*dt*(.35+1.3*f.depth);f.phase+=dt*2*f.sway});this.fl=this.fl.filter(f=>f.y<ROWS+1);
-  while(this.fl.length<120)this.fl.push(this.nf(false));const br=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  while(this.fl.length<Math.round(120*COLS/19))this.fl.push(this.nf(false));const br=Array.from({length:ROWS},()=>Array(COLS).fill(0));
   for(const f of this.fl){const fx=f.x+Math.sin(f.phase+this.ph)*f.sway,fy=f.y,pc=Math.round(fx),pr=Math.round(fy),b=.18+.82*f.depth;
    for(let r=Math.max(0,pr-1);r<Math.min(ROWS,pr+2);r++)for(let c=Math.max(0,pc-1);c<Math.min(COLS,pc+2);c++){const a=Math.max(0,1-Math.hypot(c-fx,r-fy)/1.5)*b;if(a>br[r][c])br[r][c]=a}}
   const off=hexToRgb(OFF);this.frame=br.map(row=>row.map(l=>l>.02?mix(off,[238,244,255],Math.min(1,l)):off))}}
@@ -722,7 +739,7 @@ class Lava{constructor(){this.k=1;this.t=0;this.b=Array.from({length:5},(_,k)=>(
   this.frame=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>{let v=0;for(const[x,y,rr]of pos)v+=rr/((c-x)**2+(r-y)**2+.5);
    if(v>1){const k=Math.min(1,(v-1)/1.5),col=hsvf(.95+.1*r/ROWS+hs,1-.35*k,.55+.45*k);return[255*col[0],255*col[1]*.8,255*col[2]]}
    if(v>.7){const a=(v-.7)/.3;return[Math.max(6,70*a),8*a,Math.max(10,40*a)]}return[6,0,10]}))}}
-class Stars{constructor(){this.k=1;this.t=0;this.st=Array.from({length:38},()=>({r:Math.floor(Math.random()*(ROWS-3)),c:Math.floor(Math.random()*COLS),ph:rnd(0,6.28),f:rnd(.6,2.2),b:rnd(.25,.9),warm:Math.random()<.3}));this.sh=[];this.frame=blank([0,0,0])}
+class Stars{constructor(){this.k=1;this.t=0;this.st=Array.from({length:COLS===9?18:38},()=>({r:Math.floor(Math.random()*(ROWS-3)),c:Math.floor(Math.random()*COLS),ph:rnd(0,6.28),f:rnd(.6,2.2),b:rnd(.25,.9),warm:Math.random()<.3}));this.sh=[];this.frame=blank([0,0,0])}
  step(dt){dt*=this.k;this.t+=dt;const t=this.t,fr=Array.from({length:ROWS},(_,r)=>{const g=r/ROWS;return Array.from({length:COLS},()=>[1+2*g,1+g,4+5*g])});
   for(let c=0;c<COLS;c++){const h=Math.trunc(2+1.2*Math.sin(c*.6)+.8*Math.sin(c*1.7));for(let r=ROWS-h;r<ROWS;r++)fr[r][c]=[0,0,1]}
   for(const s of this.st){const w=.55+.45*Math.sin(t*s.f*3+s.ph);fbAdd(fr,s.r,s.c,s.warm?[255,210,150]:[200,220,255],s.b*w*w)}
@@ -920,7 +937,7 @@ function renderThumbs(){const th=$("thumbs");th.innerHTML="";pics.slice(-3).reve
  const add=document.createElement("button");add.className="thumb add";add.id="addThumb";add.disabled=canvasEmpty();add.innerHTML=svg("plus");add.onclick=()=>{buzz(10);savePic("")};th.appendChild(add)}
 function tileEl(p,i,g){{const t=document.createElement("div");t.className="tile";t.style.animationDelay=Math.min(i,8)*.04+"s";
   t.innerHTML=`<canvas></canvas><div class="tn"><span></span><button class="icon-btn">${svg("trash")}</button></div>`;
-  t.querySelector("span").textContent=p.name;g.appendChild(t);const cv=t.querySelector("canvas");thumb(cv,rowsToPx(p.rows),cv.clientWidth,cv.clientWidth*20/19,2);
+  t.querySelector("span").textContent=p.name;g.appendChild(t);const cv=t.querySelector("canvas");thumb(cv,rowsToPx(p.rows),cv.clientWidth,cv.clientWidth*ROWS/COLS,2);
   cv.onclick=()=>{buzz(8);const k=pics.indexOf(p);if(k>=0)openPic(k)};
   t.querySelector(".icon-btn").onclick=()=>{if(t.dataset.dying)return;buzz(8);confirmDelete(p,()=>delTile())};
   const delTile=()=>{if(t.dataset.dying)return;t.dataset.dying=1;buzz(14);
@@ -1022,12 +1039,12 @@ function paintUpd(){const u=upd;const auto=!!(window.Native&&Native.installApk);
  const web=u&&u.app&&u.app.web>app.web&&(u.app.minApk||0)<=app.apk&&!(auto&&u.app.apk>app.apk);
  const apk=u&&u.app&&u.app.apk>app.apk&&!web;const fw=u&&u.firmware&&net.online&&u.firmware.version>fwHave()&&!fwRetryPending&&!fwSent&&!(net.state&&net.state.ota==="run");
  $("updWeb").hidden=!web;$("updApk").hidden=!apk;$("updFw").hidden=!fw;
- if(fw)$("updFw").textContent="ОБНОВИТЬ ПРОШИВКУ ДО v"+u.firmware.version;
+ if(fw)$("updFw").textContent=COLS+"×"+ROWS+" · ПРОШИВКА ДО v"+u.firmware.version;
  nav.querySelectorAll("button")[4].classList.toggle("upd",!!(web||apk||fw))}
 async function checkUpdates(silent){if(updBusy)return;updBusy=true;$("updCheck").disabled=true;if(!silent)$("updRes").textContent="Проверяю…";
  const r=await http(UPDATES+"version.json");updBusy=false;$("updCheck").disabled=false;
  if(!r){if(!silent)$("updRes").textContent="Не удалось проверить — нет интернета?";return}
- try{upd=JSON.parse(r)}catch(e){if(!silent)$("updRes").textContent="Файл обновлений повреждён";return}
+ try{upd=JSON.parse(r);upd.firmware=selectedFirmware(upd)}catch(e){if(!silent)$("updRes").textContent="Файл обновлений повреждён";return}
  paintUpd();const any=!$("updWeb").hidden||!$("updApk").hidden||!$("updFw").hidden;
  if(!silent)$("updRes").textContent=any?(upd.notes||"Есть обновление"):"Всё обновлено ✓"}
 $("updCheck").onclick=()=>{buzz(10);checkUpdates(false)};
@@ -1044,7 +1061,7 @@ $("updApk").onclick=()=>{buzz(10);if(!upd)return;
  if(window.Native&&Native.installApk){$("updApk").disabled=true;apkProg(-1);$("updRes").textContent="Скачиваю…";Native.installApk(upd.app.apkUrl)}
  else{Native.openUrl(upd.app.apkUrl);$("updRes").textContent="Скачай файл и установи его поверх — картинки и настройки сохранятся."}};
 $("updFw").onclick=()=>{if(fwRetryPending||fwSent)return;fwRetry=0;startOta()};
-function startOta(){fwRetryPending=false;buzz(10);if(!upd||!net.online)return;if(fwHave()>=upd.firmware.version)return;$("updFw").disabled=true;
+function startOta(){fwRetryPending=false;buzz(10);if(!upd||!net.online)return;const url=upd.firmware.url||'';if((MATRIX_PROFILE==='esp32c3-9x20'&&!url.endsWith('/firmware/esp32c3-9x20/LEDMatrix.bin'))||(MATRIX_PROFILE==='esp32-19x20'&&url.includes('/esp32c3-9x20/'))){$('updRes').textContent='Отказ: файл прошивки не соответствует выбранной гирлянде';return}if(fwHave()>=upd.firmware.version)return;$("updFw").disabled=true;
  request({type:"ota",url:upd.firmware.url,sha256:upd.firmware.sha256||""},null,6000).then(r=>{$("updFw").disabled=false;
   if(r&&r.startsWith("OK")){fwSent=Date.now();$("updRes").textContent="Гирлянда скачивает прошивку — нижний ряд покажет прогресс. Не выключай её.";$("updProg").classList.add("on")}
   else $("updRes").textContent=r?"Гирлянда отказалась от команды обновления: "+r:"Нет ответа от гирлянды"})}
@@ -1057,7 +1074,7 @@ function onOta(s){if(!fwSent)return;if(!s){return}
 /* Equal LAN peers: independent LWW registers, tombstones, no command relay. */
 const peerEnabled=!!(window.Native&&Native.peerState&&Native.peerInfo);
 const peerStable=v=>Array.isArray(v)?'['+v.map(peerStable).join(',')+']':v&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+peerStable(v[k])).join(',')+'}':JSON.stringify(v);
-function peerValid(k,v){const integer=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b,rows=r=>Array.isArray(r)&&r.length===20&&r.every(s=>typeof s==='string'&&/^[0-9a-fA-F]{114}$/.test(s));
+function peerValid(k,v){const integer=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b,rows=r=>Array.isArray(r)&&r.length===20&&r.every(s=>typeof s==='string'&&new RegExp('^[0-9a-fA-F]{'+(COLS*6)+'}$').test(s));
  if(typeof k!=='string'||k.length>100)return false;
  if(k.startsWith('picture:'))return /^[\w-]{1,80}$/.test(k.slice(8))&&(v===null||v&&typeof v==='object'&&v.id===k.slice(8)&&typeof v.name==='string'&&v.name.length<=120&&integer(v.t,0,Number.MAX_SAFE_INTEGER)&&rows(v.rows));
  if(k.startsWith('scenario:'))return /^[\w-]{1,80}$/.test(k.slice(9))&&(v===null||v&&typeof v==='object'&&(v.mode==='random'||MODES.some(m=>m[0]===v.mode))&&typeof v.enabled==='boolean'&&integer(v.days,0,127)&&/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v.on)&&(v.off===''||/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v.off)));
@@ -1077,10 +1094,11 @@ let peerLedger=null,peerView={},peerDirty=false,peerApplying=false;
 function peerSnapshot(){const out={brightness,mode:{key:activeMode||'off',random:randOn,every:rndEvery},'setting:night':store.get('night',false),'setting:startLast':store.get('startLast',false),'setting:timezone':store.get('tz','UTC+3')};
  for(const[k]of MODES)out['speed:'+k]=speedOf(k);mine.forEach((c,i)=>out['color:'+i]=c||'');for(const p of pics)out['picture:'+p.id]={id:p.id,name:p.name,t:p.t,rows:p.rows};
  for(const s of scens){const v={enabled:s.en,mode:s.mode,on:s.on,off:s.off,days:s.days};if(!s.id)s.id=peerScenarioId(v);out['scenario:'+s.id]=v}return out}
+function peerPublish(){const out={};for(const[k,r]of Object.entries(peerLedger.records))out[MATRIX_PROFILE+'/'+k]=r;Native.peerState(JSON.stringify(out))}
 function peerCapture(seed=false){if(!peerLedger||peerApplying)return;const now=peerSnapshot();let changed=false;
  for(const[k,v]of Object.entries(now))if(!(k in peerView)||peerStable(v)!==peerStable(peerView[k])){if(seed&&peerLedger.records[k])continue;changed=peerLedger.put(k,v,seed)||changed}
  for(const k of Object.keys(peerView))if(!(k in now)&&(k.startsWith('picture:')||k.startsWith('scenario:')))changed=peerLedger.put(k,null)||changed;
- peerView=JSON.parse(JSON.stringify(now));if(changed){peerDirty=true;Native.peerState(JSON.stringify(peerLedger.records))}}
+ peerView=JSON.parse(JSON.stringify(now));if(changed){peerDirty=true;peerPublish()}}
 function peerApply(keys){peerApplying=true;try{const values=Object.fromEntries(Object.entries(peerLedger.records).map(([k,r])=>[k,r.v]));
  if(keys.includes('mode')){const v=values.mode;activeMode=v.key==='off'?null:v.key;randOn=v.random;rndEvery=v.every;store.set('rndEvery',rndEvery);if(activeMode){store.set('lastMode',activeMode);selectMode(activeMode)}net.modeAt=Date.now();paintRnd();renderModes()}
  for(const k of keys){const v=values[k];if(k.startsWith('speed:')){const mode=k.slice(6);store.set('speed_'+mode,v);setSimSpeed(cards[mode].sim,mode,v);if(selMode===mode){sp.set(v);$('spv').textContent=v}net.speedAt=Date.now()}
@@ -1092,16 +1110,37 @@ function peerApply(keys){peerApplying=true;try{const values=Object.fromEntries(O
  if(keys.some(k=>k.startsWith('picture:'))){pics=Object.entries(values).filter(([k,v])=>k.startsWith('picture:')&&v!==null).map(([k,v])=>v).sort((a,b)=>a.t-b.t||a.id.localeCompare(b.id));store.set('pics',pics);renderPics()}
  if(keys.some(k=>k.startsWith('scenario:'))){scens=Object.entries(values).filter(([k,v])=>k.startsWith('scenario:')&&v!==null).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,v])=>({id:k.slice(9),en:v.enabled,mode:v.mode,on:v.on,off:v.off,days:v.days}));store.set('scenarios',scens);renderScens();if(scens.length>8)toast('СОХРАНЕНЫ ВСЕ СЦЕНАРИИ; В ГИРЛЯНДЕ ЛИМИТ 8')}
  }finally{peerApplying=false}}
-window.onPeerRecords=text=>{if(!peerLedger)return;let r;try{r=typeof text==='string'?JSON.parse(text):text}catch(e){return}peerCapture();const keys=peerLedger.merge(r);if(!keys.length)return;peerApply(keys);peerView=JSON.parse(JSON.stringify(peerSnapshot()));peerDirty=true;Native.peerState(JSON.stringify(peerLedger.records))};
-function initPeers(){if(!peerEnabled)return;let info;try{info=JSON.parse(Native.peerInfo())}catch(e){return}if(!/^[a-f0-9]{32}$/.test(info.id))return;peerLedger=new PeerLedger(info.id,store.get('peerRecords2',{}));store.set('peerRecords2',peerLedger.records);peerApply(Object.keys(peerLedger.records));peerCapture(true);Native.peerState(JSON.stringify(peerLedger.records));
+window.onPeerRecords=text=>{if(!peerLedger)return;let r;try{r=typeof text==='string'?JSON.parse(text):text;const pre=MATRIX_PROFILE+'/';r=Object.fromEntries(Object.entries(r).filter(([k])=>k.startsWith(pre)).map(([k,v])=>[k.slice(pre.length),v]))}catch(e){return}peerCapture();const keys=peerLedger.merge(r);if(!keys.length)return;peerApply(keys);peerView=JSON.parse(JSON.stringify(peerSnapshot()));peerDirty=true;peerPublish()};
+function initPeers(){if(!peerEnabled)return;let info;try{info=JSON.parse(Native.peerInfo())}catch(e){return}if(!/^[a-f0-9]{32}$/.test(info.id))return;peerLedger=new PeerLedger(info.id,store.get('peerRecords2',{}));store.set('peerRecords2',peerLedger.records);peerApply(Object.keys(peerLedger.records));peerCapture(true);peerPublish();
  const peerStatus=document.createElement('div');peerStatus.className='mut';peerStatus.style.marginTop='10px';$('updCheck').after(peerStatus);
  setInterval(()=>{try{const i=JSON.parse(Native.peerInfo());peerStatus.textContent=i.error?'Локальная синхронизация недоступна: '+i.error:'Локальная синхронизация: устройств рядом — '+(i.peers||0)}catch(e){}},1000);
  setInterval(peerCapture,100);setInterval(()=>{if(peerDirty){store.set('peerRecords2',peerLedger.records);store.set('scenarios',scens);peerDirty=false}},1000);
  window.addEventListener('pagehide',()=>{peerCapture();store.set('peerRecords2',peerLedger.records);store.set('scenarios',scens)});}
 
+/* Device selection is local to this app, never mirrored to another controller. */
+function saveLocalCanvas(){store.set('localCanvas',pictureRows(M.px))}
+window.addEventListener('pagehide',saveLocalCanvas);
+function chooseMatrix(key,dual=matrixInfo.dual){
+ if(fwSent||fwRetryPending||net.busy){toast('ДОЖДИСЬ ЗАВЕРШЕНИЯ КОМАНДЫ');return}
+ if(!MATRIX_PROFILES[key])return;saveLocalCanvas();peerCapture();if(peerLedger)store.set('peerRecords2',peerLedger.records);
+ if(window.Native&&Native.selectMatrix){if(!Native.selectMatrix(key,dual)){toast('НЕ УДАЛОСЬ ВЫБРАТЬ ГИРЛЯНДУ');return}}
+ localStorage.setItem('lm_matrixInfo',JSON.stringify({profile:key,dual,devices:[]}));location.reload();
+}
+function renderDeviceMenu(){const menu=$('deviceMenu');menu.replaceChildren();try{if(window.Native&&Native.matrixInfo)matrixInfo=Object.assign(matrixInfo,JSON.parse(Native.matrixInfo()))}catch(e){}
+ for(const[key,p]of Object.entries(MATRIX_PROFILES)){if(!matrixInfo.dual&&key!=='esp32-19x20')continue;const d=(matrixInfo.devices||[]).find(d=>d.profile===key);const online=d&&Date.now()-d.seen<10000;const b=document.createElement('button');b.type='button';b.classList.toggle('selected',key===MATRIX_PROFILE);b.textContent=(key===MATRIX_PROFILE?'✓ ':'')+p.name;const sub=document.createElement('small');sub.textContent=online?'Онлайн · '+d.ip:'Не в сети';b.appendChild(sub);b.onclick=()=>chooseMatrix(key);menu.appendChild(b)}
+ const b=document.createElement('button');b.className='single';b.textContent=matrixInfo.dual?'Режим одной гирлянды · 19×20':'Включить выбор двух гирлянд';b.onclick=()=>chooseMatrix('esp32-19x20',!matrixInfo.dual);menu.appendChild(b);
+ if(window.Native&&Native.rollbackSingle){const r=document.createElement('button');r.className='single';r.textContent='Вернуть прежний интерфейс · v21';r.onclick=()=>{if(fwSent||fwRetryPending||net.busy){toast('ДОЖДИСЬ ЗАВЕРШЕНИЯ КОМАНДЫ');return}r.textContent='Подтвердить возврат к одной гирлянде';r.onclick=()=>{saveLocalCanvas();if(peerLedger){peerCapture();store.set('peerRecords2',peerLedger.records)}$('updRes').textContent='Скачиваю прежний интерфейс…';Native.rollbackSingle();r.disabled=true}};menu.appendChild(r)}
+}
+$('devicePicker').onclick=()=>{const m=$('deviceMenu');m.hidden=!m.hidden;$('devicePicker').setAttribute('aria-expanded',String(!m.hidden));if(!m.hidden)renderDeviceMenu()};
+document.addEventListener('click',e=>{if(!e.target.closest('header')){$('deviceMenu').hidden=true;$('devicePicker').setAttribute('aria-expanded','false')}});
+
+window.onRollback=ok=>{if(!ok){toast('НЕ УДАЛОСЬ СКАЧАТЬ ПРЕЖНИЙ ИНТЕРФЕЙС');$('deviceMenu').hidden=true}};
+
 /* ================= СТАРТ ================= */
 let b1,b2,sp;
-function init(){layoutMatrix();buildWheel();renderMine();setColor("#FF0000");setTool("draw");
+function init(){$('canvasTitle').textContent='ХОЛСТ · '+COLS+'×'+ROWS;$('matrixSize').textContent=COLS+' лент · '+(COLS*ROWS)+' светодиодов';$('fwModel').textContent='Прошивка · '+COLS+'×'+ROWS;
+ const local=store.get('localCanvas',null);if(Array.isArray(local)&&local.length===ROWS&&local.every(r=>typeof r==='string'&&r.length===COLS*6))M.px=rowsToPx(local);
+ layoutMatrix();buildWheel();renderMine();setColor("#FF0000");setTool("draw");
  b1=DotSlider($("bright1"),5,100,onBright);b2=DotSlider($("bright2"),5,100,onBright);setBrightUI(brightness);
  sp=DotSlider($("speed"),1,100,onSpeed);selectMode(selMode);renderScens(true);renderPics();updHist();paintMirror();updSave();
  thumb($("devPrev"),DEVPREV.map(r=>r.map(c=>rgbToHex(...c))),64,64,1);

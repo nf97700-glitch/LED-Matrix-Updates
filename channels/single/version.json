@@ -1,0 +1,24 @@
+{
+  "app": {
+    "web": 21,
+    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/968a87bc1722175cd387584cc316fcc06a1cb274/app/index.html",
+    "minApk": 21,
+    "apk": 21,
+    "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/app/LED-Matrix.apk",
+    "webSha256": "07b8d2171374368977391afebce4899b17e057b759aebd242736b85d58e0dbd5",
+    "apkSha256": "7290d08236b5a0fee3324e5db7d54ec25a64c2a1e41795ea1497d8b6aa9e1b48"
+  },
+  "firmware": {
+    "version": 16,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/firmware/LEDMatrix.bin",
+    "sha256": "af4961a4826e44f1803235d74846917d868b2c753ba9ad5f7267c780dc6ad36b"
+  },
+  "notes": "ПК v20 и интерфейс телефона v21: холст больше не синхронизируется; картинки, сценарии и общие настройки продолжают синхронизацию напрямую между приложениями. Равная ширина карточек режимов на телефоне. Для Aborted на ESP v15 добавлены ограниченные повторы и уточнённое сообщение ошибки. APK21 и прошивка ESP16 не менялись; успешность OTA на конкретной ESP не подтверждена.",
+  "pc": {
+    "version": 20,
+    "runtime": 1,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/968a87bc1722175cd387584cc316fcc06a1cb274/pc/LEDMatrixStudio.pyc",
+    "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/pc/install.ps1",
+    "sha256": "7d0617043a6e61d53b78a5c37ad1f0ba360a810119d2a6c59632894851f06532"
+  }
+}
