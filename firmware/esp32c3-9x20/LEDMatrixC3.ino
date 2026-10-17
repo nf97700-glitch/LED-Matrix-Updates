@@ -19,12 +19,13 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <Update.h>
+#include <mbedtls/md.h>
 #include <esp_ota_ops.h>
 #include <esp_wifi.h>
 #include <LittleFS.h>
 
 // версия прошивки — приложение сравнивает её с последней и предлагает обновиться
-#define FW_VERSION 17
+#define FW_VERSION 18
 const char *DEVICE_MODEL = "esp32c3-9x20";
 String deviceIdentity;
 String discoveryMessage;
@@ -1382,8 +1383,40 @@ void otaProgress(int done, int total){
   updateLedsNow();
 }
 
+// Stable mbedTLS API on Arduino-ESP32 2.x and 3.x. Hash bytes before OTA commit.
+class OtaSha256 {
+  mbedtls_md_context_t ctx;
+public:
+  OtaSha256(){ mbedtls_md_init(&ctx); }
+  ~OtaSha256(){ mbedtls_md_free(&ctx); }
+  bool begin(){
+    const mbedtls_md_info_t* info=mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    return info && mbedtls_md_setup(&ctx,info,0)==0 && mbedtls_md_starts(&ctx)==0;
+  }
+  bool update(const uint8_t* data,size_t size){ return mbedtls_md_update(&ctx,data,size)==0; }
+  bool finish(uint8_t out[32]){ return mbedtls_md_finish(&ctx,out)==0; }
+};
+int otaHexNibble(char c){
+  if(c>='0' && c<='9') return c-'0';
+  if(c>='a' && c<='f') return c-'a'+10;
+  if(c>='A' && c<='F') return c-'A'+10;
+  return -1;
+}
+
 // A failed attempt only writes the inactive slot. Boot selection changes only at Update.end().
 bool otaAttempt(const String& url,const String& sha,String& error){
+  uint8_t expectedSha[32];
+  const bool verifySha=sha.length()!=0;
+  if(verifySha){
+    if(sha.length()!=64){error="invalid SHA256 length";return false;}
+    for(int i=0;i<32;i++){
+      int hi=otaHexNibble(sha[i*2]),lo=otaHexNibble(sha[i*2+1]);
+      if(hi<0||lo<0){error="invalid SHA256 hex";return false;}
+      expectedSha[i]=(uint8_t)((hi<<4)|lo);
+    }
+  }
+  OtaSha256 checksum;
+  if(!checksum.begin()){error="SHA256 init failed";return false;}
   WiFiClientSecure client;
   client.setHandshakeTimeout(8);
   client.setInsecure(); // same repository trust model as v10; expected digest supplied by client
@@ -1397,7 +1430,6 @@ bool otaAttempt(const String& url,const String& sha,String& error){
   if(total<=0||slot==NULL||(uint32_t)total>slot->size){error="invalid image size / OTA partition";http.end();return false;}
   Update.abort();
   if(!Update.begin((size_t)total,U_FLASH)){error=Update.errorString();http.end();return false;}
-  if(sha.length()&&!Update.setSHA256(sha.c_str())){error="invalid SHA256";Update.abort();http.end();return false;}
   auto* stream=http.getStreamPtr();uint8_t buffer[4096];int done=0,lastCol=-1;
   uint32_t start=millis(),lastData=start;
   while(done<total){
@@ -1407,12 +1439,21 @@ bool otaAttempt(const String& url,const String& sha,String& error){
     int available=stream->available();
     if(available>0){
       int want=min((int)sizeof(buffer),min(available,total-done));int n=stream->read(buffer,want);
-      if(n>0){if(Update.write(buffer,n)!=(size_t)n){error=Update.errorString();break;}done+=n;lastData=millis();int col=(int)((long)done*COLS/total);if(col!=lastCol){otaProgress(done,total);lastCol=col;}}
+      if(n>0){if(!checksum.update(buffer,(size_t)n)){error="SHA256 update failed";break;}if(Update.write(buffer,n)!=(size_t)n){error=Update.errorString();break;}done+=n;lastData=millis();int col=(int)((long)done*COLS/total);if(col!=lastCol){otaProgress(done,total);lastCol=col;}}
     }else if(!http.connected()){error="connection closed at "+String(done)+"/"+String(total);break;}
     delay(1);
   }
   bool ok=false;
-  if(done==total){ok=Update.end();if(!ok)error=Update.errorString();}
+  if(done==total){
+    uint8_t digest[32];
+    if(!checksum.finish(digest)) error="SHA256 finish failed";
+    else {
+      uint8_t difference=0;
+      if(verifySha) for(int i=0;i<32;i++) difference|=digest[i]^expectedSha[i];
+      if(difference) error="SHA256 mismatch";
+      else {ok=Update.end();if(!ok)error=Update.errorString();}
+    }
+  }
   if(!ok)Update.abort();
   http.end();
   Serial.printf("[OTA] received %d/%d bytes: %s\n",done,total,ok?"verified":error.c_str());
