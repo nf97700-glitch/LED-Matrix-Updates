@@ -360,7 +360,7 @@ padding:10px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;pointer-e
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="clock"></svg><span class="t">Часовой пояс</span><select id="tz"></select></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="moon"></svg><span class="t">Ночной режим 23:00–07:00</span><div class="tg" id="night"></div></div>
   <div class="li"><svg viewBox="0 0 24 24" class="i" data-i="play"></svg><span class="t">Запускать последний режим</span><div class="tg" id="lastMode"></div></div>
-  <div class="note">Ночной режим и «последний режим» работают, пока приложение открыто: ночью яркость 10%.</div>
+  <div class="note">Ночной режим работает на самой гирлянде — даже когда приложения закрыты: с 23:00 до 07:00 яркость 5%. «Последний режим» включается, когда приложение подключается.</div>
  </div>
  <div class="card">
   <div class="h3"><b>ПОДКЛЮЧЕНИЕ К WI-FI</b></div>
@@ -393,7 +393,7 @@ const COLS=PROFILE.cols, ROWS=PROFILE.rows, OFF="#161616", ACCENT="#FF2B2B";
 document.documentElement.style.setProperty('--matrix-ratio',COLS+'/'+ROWS);
 function selectedFirmware(v){return MATRIX_PROFILE==='esp32-19x20'?(v.firmware||{}):((v.firmwares||{})[MATRIX_PROFILE]||{})}
 
-const WEB_VERSION=22;
+const WEB_VERSION=23;
 const UPDATES="https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/main/";
 const ICONS={
 draw:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
@@ -480,7 +480,7 @@ dotText($("logo"),"LED MATRIX",2.6,1.0,"#FFFFFF","#1C1C1C");
    поиск и мгновенные команды — UDP 45454, картинки и настройки — TCP 3333.
    Сокеты открывает Android-часть приложения (window.Native). */
 const net={online:false,ip:null,name:null,state:null,busy:false,queue:[],cb:{},seq:0,modeAt:0};
-const UDP_TYPES=new Set(["mode","speed","brightness","pixel","pixels","clear"]);
+const UDP_TYPES=new Set(["mode","speed","brightness","pixel","pixels","clear","night"]);
 function tcp(cmd,timeout){return new Promise(res=>{if(!window.Native){res(null);return}
  const id=++net.seq;net.cb[id]=res;Native.tcp(String(id),JSON.stringify(cmd),timeout||4000)})}
 window.onTcp=(id,reply)=>{const f=net.cb[id];delete net.cb[id];if(f)f(reply)};
@@ -639,7 +639,7 @@ function DotSlider(el,min,max,onChange){const n=Math.max(12,Math.floor(el.client
  el.addEventListener("pointerup",()=>drag=false);return s}
 let brightness=store.get("brightness",75);
 function setBrightUI(v){b1.set(v);b2.set(v);$("bv1").textContent=$("bv2").textContent=v+"%"}
-function onBright(v){brightness=v;store.set("brightness",v);setBrightUI(v);if(!nightActive())send({type:"brightness",value:v},"bright")}
+function onBright(v){brightness=v;store.set("brightness",v);setBrightUI(v);send({type:"brightness",value:v},"bright")}
 
 /* ================= РЕЖИМЫ ================= */
 let selMode=store.get("selMode","fire"),activeMode=null,previewsActive=false;
@@ -980,9 +980,10 @@ $("tz").addEventListener("touchstart",e=>{e.preventDefault();openTz()},{passive:
 $("tz").addEventListener("keydown",e=>e.preventDefault());
 function openTz(){buzz(6);pickList("ЧАСОВОЙ ПОЯС",[...TZS].sort((a,b)=>parseInt(a.slice(3))-parseInt(b.slice(3))),$("tz").value,v=>{$("tz").value=v;$("tz").onchange()})}
 function toggleSetting(id,key,cb){const el=$(id);el.classList.toggle("on",store.get(key,false));el.onclick=()=>{buzz(6);const v=!store.get(key,false);store.set(key,v);el.classList.toggle("on",v);cb&&cb(v)}}
-toggleSetting("night","night",()=>{nightApplied=null;checkNight()});toggleSetting("lastMode","startLast");
-let nightApplied=null;const nightActive=()=>{if(!store.get("night",false))return false;const h=new Date().getHours();return h>=23||h<7};
-function checkNight(){const a=nightActive();if(a===nightApplied||!net.online)return;const prev=nightApplied;nightApplied=a;if(!a&&prev!==true)return;send({type:"brightness",value:a?10:brightness},"bright")}
+toggleSetting("night","night",()=>sendNight());toggleSetting("lastMode","startLast");
+// ночной режим работает на самой гирлянде (23:00–07:00, яркость 5%) — приложения не нужны.
+// Тумблер только отправляет настройку: {"type":"night","enabled":true|false}
+function sendNight(){net.nightAt=Date.now();send({type:"night",enabled:store.get("night",false)},"night")}
 let pwVis=false;$("eye").onclick=()=>{pwVis=!pwVis;$("pass").type=pwVis?"text":"password";$("eye").innerHTML=svg(pwVis?"eye_off":"eye")};
 $("wifiGo").onclick=async()=>{const ssid=$("ssid").value.trim();if(!ssid){$("wifiRes").textContent="Введи имя сети";return}
  if(!net.online){$("wifiRes").textContent="Гирлянда не в сети";return}buzz(10);$("wifiGo").disabled=true;$("wifiRes").textContent="Подключаю гирлянду…";
@@ -1008,13 +1009,14 @@ function onState(s,justConnected){if(s)net.state=s;paintStatus();onOta(s);
  // синхронизация с программой на ПК: скорость и яркость, выставленные там, видны и здесь
  if(activeMode&&cards[activeMode]&&typeof s.speed==="number"&&s.speed>=1&&s.speed<=100&&Date.now()-(net.speedAt||0)>3000&&Date.now()-net.modeAt>3000&&s.speed!==speedOf(activeMode)){
   const k=activeMode;store.set("speed_"+k,s.speed);setSimSpeed(cards[k].sim,k,s.speed);if(selMode===k){sp.set(s.speed);$("spv").textContent=s.speed}}
- if(!justConnected&&typeof s.brightness==="number"&&s.brightness>=1&&s.brightness<=100&&!nightActive()&&Date.now()-(net.brightAt||0)>3000&&s.brightness!==brightness){
+ if(!justConnected&&typeof s.brightness==="number"&&s.brightness>=1&&s.brightness<=100&&Date.now()-(net.brightAt||0)>3000&&s.brightness!==brightness){
   brightness=s.brightness;store.set("brightness",brightness);setBrightUI(brightness)}
+ if("night" in s&&Date.now()-(net.nightAt||0)>4000&&!!s.night!==store.get("night",false)){store.set("night",!!s.night);$("night").classList.toggle("on",!!s.night)}
  if(typeof s.picsRev==="number"&&s.picsRev>=0&&s.picsRev!==picsSeenRev)syncPics();
  if(s.sched&&(!peerEnabled||(!scens.length&&peerLedger&&!Object.keys(peerLedger.records).some(k=>k.startsWith("scenario:"))))&&Date.now()-scenDirty>4000&&!net.queue.some(q=>q.key==="sched")){const lines=JSON.stringify(s.sched||[]);
   if(lines!==JSON.stringify(schedLines())&&!document.activeElement.closest?.(".scen")&&!sheetOpen){scens=parseSched(s.sched);store.set("scenarios",scens);renderScens()}}
- if(justConnected){sendTime();nightApplied=null;checkNight();
-  if(typeof s.brightness==="number"&&!nightActive()&&s.brightness!==brightness){brightness=s.brightness;setBrightUI(brightness)}
+ if(justConnected){sendTime();sendNight();
+  if(typeof s.brightness==="number"&&s.brightness!==brightness){brightness=s.brightness;setBrightUI(brightness)}
   if(store.get("startLast",false)&&!activeMode&&store.get("lastMode",null)){if(store.get("lastMode")==="random")startRandom();else if(cards[store.get("lastMode")])startMode(store.get("lastMode"))}}}
 
 /* Приложение 1.7 умело привязываться к одной гирлянде. Привязку убрали:
@@ -1103,7 +1105,7 @@ function peerApply(keys){peerApplying=true;try{const values=Object.fromEntries(O
  if(keys.includes('mode')){const v=values.mode;activeMode=v.key==='off'?null:v.key;randOn=v.random;rndEvery=v.every;store.set('rndEvery',rndEvery);if(activeMode){store.set('lastMode',activeMode);selectMode(activeMode)}net.modeAt=Date.now();paintRnd();renderModes()}
  for(const k of keys){const v=values[k];if(k.startsWith('speed:')){const mode=k.slice(6);store.set('speed_'+mode,v);setSimSpeed(cards[mode].sim,mode,v);if(selMode===mode){sp.set(v);$('spv').textContent=v}net.speedAt=Date.now()}
  else if(k==='brightness'){brightness=v;store.set('brightness',v);setBrightUI(v);net.brightAt=Date.now()}
- else if(k==='setting:night'){store.set('night',v);$('night').classList.toggle('on',v);nightApplied=nightActive()}
+ else if(k==='setting:night'){store.set('night',v);$('night').classList.toggle('on',v);sendNight()}
  else if(k==='setting:startLast'){store.set('startLast',v);$('lastMode').classList.toggle('on',v)}
  else if(k==='setting:timezone'){store.set('tz',v);$('tz').value=v}}
  if(keys.some(k=>k.startsWith('color:'))){for(let i=0;i<9;i++)if(('color:'+i)in values)mine[i]=values['color:'+i];store.set('mine',mine);renderMine()}
@@ -1149,7 +1151,7 @@ function init(){$('canvasTitle').textContent='ХОЛСТ · '+COLS+'×'+ROWS;$('
  // после обновления сразу возвращаемся в настройки и показываем, что ещё осталось обновить
  if(afterUpd)setTimeout(()=>checkUpdates(false),400);
  setTimeout(()=>checkUpdates(true),2500);
- setInterval(()=>{if(page===2)renderClock();checkNight()},1000);setInterval(sendTime,15*60*1000)}
+ setInterval(()=>{if(page===2)renderClock()},1000);setInterval(sendTime,15*60*1000)}
 window.addEventListener("load",init);
 </script>
 </body>
