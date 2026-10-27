@@ -1,42 +1,42 @@
 {
   "app": {
-    "web": 22,
-    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/1c6d7345d7e6c7a6da12cccb3e906c6ea8515cd8/app/index.html",
+    "web": 23,
+    "webUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/b671305a28aef61dac544ae9704c989cb8785d75/app/index.html",
     "minApk": 22,
     "apk": 22,
     "apkUrl": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/1c6d7345d7e6c7a6da12cccb3e906c6ea8515cd8/app/LED-Matrix.apk",
-    "webSha256": "0d77d299a973567cdc4f07904f045408ea3bf9373525d0daea5b001a82ea5f09",
+    "webSha256": "43a43fe552f1711e8c44be948f4f4fe7132631d23b8a346cc5dd9f8532351c33",
     "apkSha256": "7f40bb3fc4148fab51cf4bbcab33ede01b7cbd13e0c17b5d10b872c83857a54c"
   },
   "firmware": {
-    "version": 16,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/firmware/LEDMatrix.bin",
-    "sha256": "af4961a4826e44f1803235d74846917d868b2c753ba9ad5f7267c780dc6ad36b"
+    "version": 17,
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/b671305a28aef61dac544ae9704c989cb8785d75/firmware/LEDMatrix.bin",
+    "sha256": "50f0fdc312bc80b0502d775337bc4d33bc22fe35f1d8686667a71f43574230b7"
   },
-  "notes": "Исправление только C3 9×20 v19: сравнения обратной косой черты в двух JSON-функциях заменены на0x5C. Исправление SHA-256 изv18 сохранено. Полный исходник из ZIP скомпилирован сesp32-core3.3.12. ПК21, APK22/интерфейс22 и исходная гирлянда19×20v16 не менялись. Первая установка C3 — по USB; работу на плате нужно проверить.",
+  "notes": "Ночной режим переехал в саму гирлянду: она сама опускает яркость до 5% с 23:00 до 07:00 по местному времени (время берёт из NTP или от приложения), держать приложения открытыми не нужно. Смена режимов, «случайный» и сценарии теперь переходят кроссфейдом (~0.25 с) вместо резкого гашения, яркость меняется плавно (~1.4 с). Обновления: прошивка 19x20 → v17, прошивка C3 9x20 → v20, ПК → v22, интерфейс телефона → v23. APK22 не менялся.",
   "pc": {
-    "version": 21,
+    "version": 22,
     "runtime": 1,
-    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/1c6d7345d7e6c7a6da12cccb3e906c6ea8515cd8/pc/LEDMatrixStudio.pyc",
+    "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/b671305a28aef61dac544ae9704c989cb8785d75/pc/LEDMatrixStudio.pyc",
     "installer": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/pc/install.ps1",
-    "sha256": "37c0d590eccf69bf3aa83f494912d3d5d0466bb307c7a05864f40b52b812a790"
+    "sha256": "a11ef1a6f260d476f707295c621155ef084e2fa75627651924b9054dbc68ad44"
   },
   "firmwares": {
     "esp32-19x20": {
-      "version": 16,
-      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/fe4955d74fdf0445b42a5e244155074fc65bb308/firmware/LEDMatrix.bin",
-      "sha256": "af4961a4826e44f1803235d74846917d868b2c753ba9ad5f7267c780dc6ad36b",
+      "version": 17,
+      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/b671305a28aef61dac544ae9704c989cb8785d75/firmware/LEDMatrix.bin",
+      "sha256": "50f0fdc312bc80b0502d775337bc4d33bc22fe35f1d8686667a71f43574230b7",
       "model": "esp32-19x20",
       "cols": 19,
       "rows": 20
     },
     "esp32c3-9x20": {
-      "version": 19,
+      "version": 20,
       "model": "esp32c3-9x20",
       "cols": 9,
       "rows": 20,
-      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/7465ead924fe84a3bb98f858e3717d964e60f046/firmware/esp32c3-9x20/LEDMatrix.bin",
-      "sha256": "6adbbff7e0f0ff621bd445361be747bc82ceff66157aec60be85117e658f8c6f"
+      "url": "https://raw.githubusercontent.com/nf97700-glitch/LED-Matrix-Updates/b671305a28aef61dac544ae9704c989cb8785d75/firmware/esp32c3-9x20/LEDMatrix.bin",
+      "sha256": "4913e131cce16357cf1c4812364f26ae7fe281c72df8785347fb2edd1453e8b1"
     }
   }
 }
